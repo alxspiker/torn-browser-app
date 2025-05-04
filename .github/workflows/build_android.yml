@@ -1,4 +1,4 @@
-name: Build Android App
+name: Build Capacitor App
 
 on:
   push:
@@ -9,7 +9,24 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - platform: android
+            os: ubuntu-latest
+            artifact_path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+            artifact_name: app-android.apk
+          - platform: ios
+            os: macos-latest
+            artifact_path: frontend/ios/build/Build/Products/Debug-iphonesimulator/App.app
+            artifact_name: app-ios.app
+          - platform: electron
+            os: windows-latest
+            artifact_path: frontend/electron/dist
+            artifact_name: electron-app
+      fail-fast: false  # Continue with other platforms if one fails
     
     steps:
     - uses: actions/checkout@v3
@@ -33,15 +50,32 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         
-    # Update package.json to fix dependency issues
-    - name: Fix package.json
+    # Update package.json to fix dependency issues - Linux version
+    - name: Fix package.json (Linux)
+      if: matrix.platform == 'android'
       run: |
         cd frontend
-        # Replace @capacitor/storage with @capacitor/preferences
         sed -i 's/"@capacitor\/storage": "\^5.0.6"/"@capacitor\/preferences": "\^5.0.6"/g' package.json
-        # Update app.js imports
         sed -i 's/import { Storage } from '"'"'@capacitor\/storage'"'"'/import { Preferences } from '"'"'@capacitor\/preferences'"'"'/g' src/js/app.js
         sed -i 's/Storage\./Preferences\./g' src/js/app.js
+
+    # Update package.json to fix dependency issues - macOS version
+    - name: Fix package.json (macOS)
+      if: matrix.platform == 'ios'
+      run: |
+        cd frontend
+        sed -i '' 's/"@capacitor\/storage": "\^5.0.6"/"@capacitor\/preferences": "\^5.0.6"/g' package.json
+        sed -i '' 's/import { Storage } from '"'"'@capacitor\/storage'"'"'/import { Preferences } from '"'"'@capacitor\/preferences'"'"'/g' src/js/app.js
+        sed -i '' 's/Storage\./Preferences\./g' src/js/app.js
+    
+    # Update package.json to fix dependency issues - Windows version
+    - name: Fix package.json (Windows)
+      if: matrix.platform == 'electron'
+      run: |
+        cd frontend
+        (Get-Content package.json) -replace '"@capacitor/storage": "\^5.0.6"', '"@capacitor/preferences": "^5.0.6"' | Set-Content package.json
+        (Get-Content src/js/app.js) -replace 'import { Storage } from ''@capacitor/storage''', 'import { Preferences } from ''@capacitor/preferences''' | Set-Content src/js/app.js
+        (Get-Content src/js/app.js) -replace 'Storage\.', 'Preferences.' | Set-Content src/js/app.js
         
     # Install Node.js dependencies
     - name: Install Node.js dependencies
@@ -50,54 +84,69 @@ jobs:
         npm install
         # Install TypeScript as a dev dependency (required by Capacitor)
         npm install -D typescript
-        
-    # Create a JavaScript version of the capacitor config file
-    - name: Create JS config
-      run: |
-        cd frontend
-        # If capacitor.config.ts exists, convert it to JS format
-        if [ -f "capacitor.config.ts" ]; then
-          mv capacitor.config.ts capacitor.config.js
-          sed -i 's/import { CapacitorConfig } from/\/\/ import { CapacitorConfig } from/g' capacitor.config.js
-          sed -i 's/const config: CapacitorConfig/const config/g' capacitor.config.js
-          sed -i 's/export default config;/module.exports = config;/g' capacitor.config.js
+        # Install Electron for Windows builds
+        if [[ "${{ matrix.platform }}" == "electron" ]]; then
+          npm install -D @capacitor/electron electron electron-builder
         fi
+      shell: bash
         
     # Build the frontend
     - name: Build frontend
       run: |
         cd frontend
         npm run build
-        
-    # Set up Java for Android builds
-    - name: Set up JDK 17
+
+    # Android-specific steps
+    - name: Set up JDK (Android only)
       uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'temurin'
+      if: matrix.platform == 'android'
         
-    # Add Android platform
-    - name: Add Android platform
+    # iOS-specific steps
+    - name: Install Cocoapods (iOS only)
+      run: |
+        sudo gem install cocoapods
+      if: matrix.platform == 'ios'
+    
+    # Add platform
+    - name: Add platform
       run: |
         cd frontend
-        npx cap add android
-        
-    # Sync web assets with Android
+        npx cap add ${{ matrix.platform }}
+    
+    # Sync assets
     - name: Sync Capacitor
       run: |
         cd frontend
-        npx cap sync android
-        
-    # Build Android Debug APK
-    - name: Build Android Debug APK
+        npx cap sync ${{ matrix.platform }}
+    
+    # Build for Android
+    - name: Build Android APK
+      if: matrix.platform == 'android'
       run: |
         cd frontend/android
         chmod +x ./gradlew
         ./gradlew assembleDebug
+    
+    # Build for iOS
+    - name: Build iOS app
+      if: matrix.platform == 'ios'
+      run: |
+        cd frontend/ios
+        xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath build
         
-    # Upload APK as artifact
-    - name: Upload APK
+    # Build for Electron (Windows)
+    - name: Build Electron app
+      if: matrix.platform == 'electron'
+      run: |
+        cd frontend/electron
+        npm run electron:build
+      
+    # Upload platform-specific artifacts
+    - name: Upload artifact
       uses: actions/upload-artifact@v4
       with:
-        name: app-debug
-        path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+        name: ${{ matrix.artifact_name }}
+        path: ${{ matrix.artifact_path }}
