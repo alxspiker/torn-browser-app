@@ -1,0 +1,32 @@
+{
+  "name": "torn-browser-app",
+  "version": "1.0.0",
+  "description": "A cross-platform mobile app for Torn.com with userscript capabilities",
+  "main": "index.js",
+  "scripts": {
+    "start": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "sync": "npx cap sync",
+    "android": "npm run build && npx cap sync android && npx cap open android",
+    "ios": "npm run build && npx cap sync ios && npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "^5.5.0",
+    "@capacitor/core": "^5.5.0",
+    "@capacitor/ios": "^5.5.0",
+    "@capacitor/browser": "^5.1.0",
+    "@capacitor/dialog": "^5.0.6",
+    "@capacitor/filesystem": "^5.1.4",
+    "@capacitor/haptics": "^5.0.6",
+    "@capacitor/storage": "^5.0.6",
+    "@capacitor/status-bar": "^5.0.6",
+    "@capacitor/toast": "^5.0.6"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^5.5.0",
+    "vite": "^5.0.0"
+  },
+  "author": "",
+  "license": "MIT"
+}
