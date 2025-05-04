@@ -48,6 +48,20 @@ jobs:
       run: |
         cd frontend
         npm install
+        # Install TypeScript as a dev dependency (required by Capacitor)
+        npm install -D typescript
+        
+    # Create a JavaScript version of the capacitor config file
+    - name: Create JS config
+      run: |
+        cd frontend
+        # If capacitor.config.ts exists, convert it to JS format
+        if [ -f "capacitor.config.ts" ]; then
+          mv capacitor.config.ts capacitor.config.js
+          sed -i 's/import { CapacitorConfig } from/\/\/ import { CapacitorConfig } from/g' capacitor.config.js
+          sed -i 's/const config: CapacitorConfig/const config/g' capacitor.config.js
+          sed -i 's/export default config;/module.exports = config;/g' capacitor.config.js
+        fi
         
     # Build the frontend
     - name: Build frontend
