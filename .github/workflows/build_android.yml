@@ -33,6 +33,16 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         
+    # Update package.json to fix dependency issues
+    - name: Fix package.json
+      run: |
+        cd frontend
+        # Replace @capacitor/storage with @capacitor/preferences
+        sed -i 's/"@capacitor\/storage": "\^5.0.6"/"@capacitor\/preferences": "\^5.0.6"/g' package.json
+        # Update app.js imports
+        sed -i 's/import { Storage } from '"'"'@capacitor\/storage'"'"'/import { Preferences } from '"'"'@capacitor\/preferences'"'"'/g' src/js/app.js
+        sed -i 's/Storage\./Preferences\./g' src/js/app.js
+        
     # Install Node.js dependencies
     - name: Install Node.js dependencies
       run: |
