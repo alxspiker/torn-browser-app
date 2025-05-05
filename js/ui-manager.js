@@ -6,6 +6,7 @@ class UIManager {
     this.toggleButtons = {};
     this.sidebarVisible = true;
     this.initialized = false;
+    this.darkModeEnabled = false;
   }
 
   async init() {
@@ -61,6 +62,19 @@ class UIManager {
 
       // Set up top bar event listeners
       this.setupTopBarEventListeners();
+      
+      // Check if dark mode preference is stored in localStorage
+      try {
+        const appSettings = localStorage.getItem('appSettings');
+        if (appSettings) {
+          const settings = JSON.parse(appSettings);
+          if (settings.darkMode) {
+            this.toggleDarkMode(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading dark mode preference:', error);
+      }
       
       this.initialized = true;
       console.log('UI Manager initialized');
@@ -278,12 +292,27 @@ class UIManager {
   }
   
   toggleDarkMode(isDark) {
+    console.log(`Toggling dark mode: ${isDark ? 'ON' : 'OFF'}`);
+    this.darkModeEnabled = isDark;
+    
     if (isDark) {
       document.body.classList.add('dark-theme');
       document.body.classList.remove('light-theme');
     } else {
       document.body.classList.add('light-theme');
       document.body.classList.remove('dark-theme');
+    }
+    
+    // Store the preference
+    try {
+      const appSettings = localStorage.getItem('appSettings');
+      if (appSettings) {
+        const settings = JSON.parse(appSettings);
+        settings.darkMode = isDark;
+        localStorage.setItem('appSettings', JSON.stringify(settings));
+      }
+    } catch (error) {
+      console.error('Error saving dark mode preference:', error);
     }
   }
   
@@ -296,6 +325,10 @@ class UIManager {
   // Utility function to check if modals are loaded
   areModalsLoaded() {
     return Object.keys(this.modals).length > 0;
+  }
+  
+  isDarkModeEnabled() {
+    return this.darkModeEnabled;
   }
 }
 
