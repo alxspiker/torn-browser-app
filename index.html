@@ -1,4 +1,3 @@
-<!-- index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -6,19 +5,118 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Torn Browser</title>
+  <!-- CodeMirror - for code editing with syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/theme/material.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/addon/hint/show-hint.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/addon/lint/lint.min.css">
   <style>
-    body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6fb; }
-    #controls {
+    :root {
+      --primary-bg: #1a2636;
+      --primary-fg: #ffffff;
+      --secondary-bg: #2a3a4a;
+      --hover-bg: #405070;
+      --accent-color: #5d98ff;
+      --danger-color: #e53935;
+      --success-color: #2e7d32;
+      --warning-color: #f9a825;
+      --border-color: #3a4a5a;
+      --text-color: #ffffff;
+      --text-secondary: #b0bec5;
+      --panel-bg: #283644;
+      --input-bg: #374757;
+      --input-text: #e0e0e0;
+      
+      --sidebar-width: 250px;
+      --header-height: 60px;
+      --transition-speed: 0.3s;
+    }
+    
+    .light-theme {
+      --primary-bg: #f5f7fa;
+      --primary-fg: #202020;
+      --secondary-bg: #e1e7f0;
+      --hover-bg: #d0e0ff;
+      --accent-color: #1976d2;
+      --border-color: #cfd8dc;
+      --text-color: #263238;
+      --text-secondary: #546e7a;
+      --panel-bg: #ffffff;
+      --input-bg: #ffffff;
+      --input-text: #263238;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    
+    body { 
+      margin: 0; 
+      font-family: 'Segoe UI', Arial, sans-serif; 
+      background: var(--primary-bg);
+      color: var(--text-color);
+      transition: background var(--transition-speed);
+    }
+    
+    /* Main layout structure */
+    .app-container {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+    
+    .top-bar {
       display: flex;
       align-items: center;
-      padding: 10px 12px;
-      background: #222e3a;
-      box-shadow: 0 2px 6px #0001;
+      background: var(--secondary-bg);
+      border-bottom: 1px solid var(--border-color);
+      height: var(--header-height);
+      padding: 0 10px;
+    }
+    
+    .content-wrapper {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    .sidebar {
+      width: var(--sidebar-width);
+      background: var(--secondary-bg);
+      border-right: 1px solid var(--border-color);
+      overflow-y: auto;
+      transition: transform var(--transition-speed);
+      z-index: 10;
+    }
+    
+    .sidebar-collapsed {
+      transform: translateX(calc(-1 * var(--sidebar-width)));
+    }
+    
+    .main-content {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    /* Navigation Controls */
+    #browser-controls {
+      display: flex;
+      align-items: center;
+      padding: 8px 12px;
+      background: var(--primary-bg);
+      border-bottom: 1px solid var(--border-color);
       gap: 8px;
     }
-    #controls button {
-      background: #3a4a5a;
-      color: #fff;
+    
+    .control-button {
+      background: var(--secondary-bg);
+      color: var(--primary-fg);
       border: none;
       border-radius: 4px;
       padding: 6px 12px;
@@ -26,210 +124,777 @@
       cursor: pointer;
       transition: background 0.2s;
     }
-    #controls button:hover {
-      background: #506080;
+    
+    .control-button:hover {
+      background: var(--hover-bg);
     }
-    #controls input[type="text"] {
+    
+    .control-button.active {
+      background: var(--accent-color);
+    }
+    
+    .url-input {
       flex: 1;
-      padding: 7px 10px;
-      border: 1px solid #bbb;
+      padding: 10px 12px;
+      border: 1px solid var(--border-color);
       border-radius: 4px;
       font-size: 1em;
-      background: #fff;
+      background: var(--input-bg);
+      color: var(--input-text);
       outline: none;
+      transition: border-color 0.2s;
     }
+    
+    .url-input:focus {
+      border-color: var(--accent-color);
+      box-shadow: 0 0 0 2px rgba(93, 152, 255, 0.2);
+    }
+    
+    /* Browser View */
+    .browser-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+    
     #browser-view {
-      border: 1px solid #d0d3d8;
-      border-radius: 0 0 8px 8px;
-      background: #fff;
-      margin-bottom: 0;
-      box-shadow: 0 2px 8px #0001;
+      width: 100%;
+      height: 100%;
+      border: none;
     }
-    #settings-panel {
+    
+    /* Status Bar */
+    .status-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 12px;
+      background: var(--secondary-bg);
+      border-top: 1px solid var(--border-color);
+      font-size: 0.85em;
+      color: var(--text-secondary);
+    }
+    
+    /* Torn Features Section */
+    .torn-section {
+      padding: 15px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .torn-section h3 {
+      margin-bottom: 12px;
+      color: var(--accent-color);
+      font-size: 1.1em;
+    }
+    
+    .torn-stats-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 5px 0;
+      border-bottom: 1px dotted var(--border-color);
+    }
+    
+    .torn-stats-item:last-child {
+      border-bottom: none;
+    }
+    
+    .quick-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+    
+    .quick-link {
+      background: var(--secondary-bg);
+      color: var(--primary-fg);
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      padding: 6px 10px;
+      font-size: 0.9em;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .quick-link:hover {
+      background: var(--hover-bg);
+    }
+    
+    /* Modal Windows */
+    .modal {
       position: fixed;
-      top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.25);
+      top: 0; 
+      left: 0; 
+      right: 0; 
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
       z-index: 1000;
       display: flex;
       align-items: center;
       justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s;
     }
-    #settings-content {
-      background: #fff;
+    
+    .modal.active {
+      opacity: 1;
+      visibility: visible;
+    }
+    
+    .modal-content {
+      background: var(--panel-bg);
       border-radius: 8px;
-      box-shadow: 0 4px 24px #0003;
-      padding: 24px 28px 20px 28px;
-      min-width: 340px;
-      min-height: 220px;
-      max-width: 90vw;
-      max-height: 80vh;
+      box-shadow: 0 5px 25px rgba(0, 0, 0, 0.25);
+      width: 80%;
+      max-width: 900px;
+      max-height: 90vh;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 15px 20px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .modal-title {
+      font-size: 1.3em;
+      font-weight: bold;
+    }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 1.5em;
+      cursor: pointer;
+    }
+    
+    .modal-close:hover {
+      color: var(--danger-color);
+    }
+    
+    .modal-body {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      padding: 15px 20px;
+      border-top: 1px solid var(--border-color);
       gap: 10px;
     }
-    #close-settings {
-      background: #e53935;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      padding: 4px 10px;
-      font-size: 1.1em;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    #close-settings:hover {
-      background: #b71c1c;
-    }
-    #userscript-manager {
+    
+    /* Tabs */
+    .tabs {
       display: flex;
-      flex-direction: row;
-      gap: 18px;
-      min-width: 500px;
-      min-height: 220px;
-      max-width: 80vw;
-      max-height: 60vh;
+      background: var(--secondary-bg);
+      border-bottom: 1px solid var(--border-color);
     }
-    #userscript-list-panel {
-      width: 180px;
-      border-right: 1px solid #eee;
-      padding-right: 10px;
+    
+    .tab {
+      padding: 10px 20px;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    
+    .tab:hover {
+      background: var(--hover-bg);
+    }
+    
+    .tab.active {
+      border-bottom-color: var(--accent-color);
+      background: var(--input-bg);
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    /* Forms */
+    .form-group {
+      margin-bottom: 15px;
+    }
+    
+    .form-label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    
+    .form-input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background: var(--input-bg);
+      color: var(--input-text);
+    }
+    
+    .form-input:focus {
+      border-color: var(--accent-color);
+      outline: none;
+    }
+    
+    /* Userscript Editor */
+    #userscript-editor {
+      display: flex;
+      height: 70vh;
+    }
+    
+    .editor-sidebar {
+      width: 250px;
+      border-right: 1px solid var(--border-color);
       display: flex;
       flex-direction: column;
-      gap: 8px;
     }
-    #userscript-list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
+    
+    .script-list {
       flex: 1;
       overflow-y: auto;
-      max-height: 220px;
+      padding: 10px;
     }
-    #userscript-list li {
-      padding: 6px 8px;
-      border-radius: 4px;
-      margin-bottom: 4px;
+    
+    .script-list-item {
+      padding: 8px 12px;
       cursor: pointer;
-      background: #f4f6fb;
+      border-radius: 4px;
+      margin-bottom: 5px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: background 0.2s;
+    }
+    
+    .script-list-item:hover {
+      background: var(--hover-bg);
+    }
+    
+    .script-list-item.active {
+      background: var(--accent-color);
+    }
+    
+    .script-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-secondary);
+    }
+    
+    .script-status-dot.enabled {
+      background: var(--success-color);
+    }
+    
+    .editor-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    
+    .editor-toolbar {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    .editor-workspace {
+      flex: 1;
+      overflow: hidden;
+    }
+    
+    .CodeMirror {
+      height: 100% !important;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 14px;
+    }
+    
+    /* Buttons */
+    .btn {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+      font-size: 0.95em;
+    }
+    
+    .btn-primary {
+      background: var(--accent-color);
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #4b7eda;
+    }
+    
+    .btn-secondary {
+      background: var(--secondary-bg);
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+    }
+    
+    .btn-secondary:hover {
+      background: var(--hover-bg);
+    }
+    
+    .btn-danger {
+      background: var(--danger-color);
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #c62828;
+    }
+    
+    .btn-success {
+      background: var(--success-color);
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background: #2e7d32;
+    }
+    
+    /* User Profile Section */
+    .profile-section {
+      padding: 15px;
+    }
+    
+    .profile-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 15px;
+    }
+    
+    .profile-avatar {
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      background: var(--accent-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5em;
+      font-weight: bold;
+      color: white;
+    }
+    
+    .profile-name {
+      font-weight: bold;
+      font-size: 1.2em;
+    }
+    
+    .profile-list {
+      list-style: none;
+      margin-top: 15px;
+    }
+    
+    .profile-list-item {
+      padding: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-bottom: 5px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       transition: background 0.2s;
     }
-    #userscript-list li.selected {
-      background: #d0e2ff;
-      font-weight: bold;
+    
+    .profile-list-item:hover {
+      background: var(--hover-bg);
     }
-    #userscript-list li .enabled-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: #2e7d32;
-      display: inline-block;
-      margin-right: 6px;
+    
+    .profile-list-item.active {
+      background: var(--accent-color);
     }
-    #userscript-list li .disabled-dot {
-      background: #bbb;
-    }
-    #userscript-editor-panel {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      min-width: 260px;
-    }
-    #userscript-name {
-      padding: 4px 8px;
-      border-radius: 4px;
-      border: 1px solid #bbb;
-      background: #f8fafd;
-    }
-    #userscript-area {
-      resize: vertical;
-      min-height: 80px;
-      max-height: 200px;
-      border-radius: 4px;
-      border: 1px solid #bbb;
-      font-size: 1em;
-      background: #f8fafd;
-      color: #222;
-      padding: 8px;
-    }
-    #save-userscript {
-      background: #2e7d32;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      padding: 6px 16px;
-      font-size: 1em;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    #save-userscript:hover {
-      background: #388e3c;
-    }
-    #delete-userscript {
-      background: #e53935;
-      color: #fff;
-      border: none;
-      border-radius: 4px;
-      padding: 4px 10px;
-      font-size: 1em;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    #delete-userscript:hover {
-      background: #b71c1c;
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .sidebar {
+        position: absolute;
+        height: calc(100% - var(--header-height));
+        transform: translateX(-100%);
+      }
+      
+      .sidebar.active {
+        transform: translateX(0);
+      }
+      
+      .sidebar-toggle {
+        display: block;
+      }
     }
   </style>
 </head>
 <body>
-  <div id="controls">
-    <button id="back" title="Back">⬅️</button>
-    <button id="forward" title="Forward">➡️</button>
-    <button id="reload" title="Reload">🔄</button>
-    <input id="url" type="text" value="https://www.example.com" placeholder="Enter URL..." />
-    <button id="go" title="Go">🏁</button>
-    <button id="settings" title="Settings">⚙️</button>
-  </div>
-  <webview id="browser-view" src="https://www.example.com" style="width:100vw; height:calc(100vh - 60px);"></webview>
-  <div id="settings-panel" style="display:none;">
-    <div id="settings-content">
-      <div style="display:flex;justify-content:space-between;align-items:center;">
-        <b>Settings</b>
-        <button id="close-settings" title="Close">❌</button>
+  <div class="app-container">
+    <!-- Top navigation bar -->
+    <div class="top-bar">
+      <button id="sidebar-toggle" class="control-button" title="Toggle Sidebar">☰</button>
+      <div style="margin-left: 15px; font-weight: bold;">Torn Browser</div>
+      <div style="margin-left: auto;">
+        <button id="profile-button" class="control-button" title="User Profile">👤</button>
+        <button id="settings-button" class="control-button" title="Settings">⚙️</button>
       </div>
-      <hr />
-      <div id="userscript-manager">
-        <div id="userscript-list-panel">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <b>Userscripts</b>
-            <button id="add-userscript" title="Add">➕</button>
+    </div>
+    
+    <!-- Main content area with sidebar -->
+    <div class="content-wrapper">
+      <!-- Sidebar with Torn features -->
+      <div id="sidebar" class="sidebar">
+        <div class="profile-section">
+          <div class="profile-header">
+            <div class="profile-avatar" id="profile-avatar">T</div>
+            <div>
+              <div class="profile-name" id="profile-name">Default User</div>
+              <small id="profile-status">Level 1</small>
+            </div>
           </div>
-          <ul id="userscript-list"></ul>
+          <button id="refresh-stats" class="btn btn-secondary" style="width:100%;">Refresh Stats</button>
         </div>
-        <div id="userscript-editor-panel">
-          <div style="display:flex;justify-content:space-between;align-items:center;">
-            <input id="userscript-name" placeholder="Script name" style="font-size:1.1em;width:40%;" />
-            <input id="userscript-match" placeholder="Match pattern (e.g. *://*.example.com/*)" style="font-size:1em;width:40%;margin-left:8px;" />
-            <button id="delete-userscript" title="Delete" style="background:#e53935;">🗑️</button>
-            <label style="margin-left:10px;font-size:0.95em;">
-              <input type="checkbox" id="userscript-enabled" /> Enabled
-            </label>
+        
+        <div class="torn-section">
+          <h3>Player Stats</h3>
+          <div id="torn-stats">
+            <div class="torn-stats-item">
+              <span>Energy:</span>
+              <span id="stat-energy">-- / --</span>
+            </div>
+            <div class="torn-stats-item">
+              <span>Nerve:</span>
+              <span id="stat-nerve">-- / --</span>
+            </div>
+            <div class="torn-stats-item">
+              <span>Happy:</span>
+              <span id="stat-happy">-- / --</span>
+            </div>
+            <div class="torn-stats-item">
+              <span>Life:</span>
+              <span id="stat-life">-- / --</span>
+            </div>
+            <div class="torn-stats-item">
+              <span>Chain:</span>
+              <span id="stat-chain">--</span>
+            </div>
+            <div class="torn-stats-item">
+              <span>Money:</span>
+              <span id="stat-money">$--</span>
+            </div>
+            <div class="torn-stats-item">
+              <span>Points:</span>
+              <span id="stat-points">--</span>
+            </div>
           </div>
-          <textarea id="userscript-area" rows="8" style="width:100%;font-family:monospace;"></textarea>
-          <div style="display:flex;gap:8px;align-items:center;">
-            <button id="save-userscript">💾 Save</button>
-            <button id="export-userscripts" title="Export all">⬇️ Export</button>
-            <button id="import-userscripts" title="Import">⬆️ Import</button>
-            <input type="file" id="import-file" accept="application/json" style="display:none;" />
-            <span id="save-status" style="margin-left:10px;color:green;display:none;">Saved!</span>
-            <span id="script-count" style="margin-left:auto;font-size:0.95em;color:#555;"></span>
+        </div>
+        
+        <div class="torn-section">
+          <h3>Quick Links</h3>
+          <div class="quick-links">
+            <button class="quick-link" data-url="https://www.torn.com">Home</button>
+            <button class="quick-link" data-url="https://www.torn.com/city.php">City</button>
+            <button class="quick-link" data-url="https://www.torn.com/gym.php">Gym</button>
+            <button class="quick-link" data-url="https://www.torn.com/crimes.php">Crimes</button>
+            <button class="quick-link" data-url="https://www.torn.com/inventory.php">Items</button>
+            <button class="quick-link" data-url="https://www.torn.com/factions.php">Faction</button>
+            <button class="quick-link" data-url="https://www.torn.com/trade.php">Trade</button>
+            <button class="quick-link" data-url="https://www.torn.com/hospitalview.php">Hospital</button>
+            <button class="quick-link" data-url="https://www.torn.com/travelagency.php">Travel</button>
+            <button class="quick-link" data-url="https://www.torn.com/events.php">Events</button>
           </div>
+        </div>
+        
+        <div class="torn-section">
+          <h3>Cooldowns</h3>
+          <div id="cooldowns">
+            <div class="torn-stats-item">
+              <span>Drug:</span>
+              <span id="cooldown-drug">--</span>
+            </div>
+            <div class="torn-stats-item">
+              <span>Medical:</span>
+              <span id="cooldown-medical">--</span>
+            </div>
+            <div class="torn-stats-item">
+              <span>Booster:</span>
+              <span id="cooldown-booster">--</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="torn-section">
+          <h3>Notes</h3>
+          <textarea id="user-notes" style="width: 100%; height: 100px; background: var(--input-bg); color: var(--input-text); border: 1px solid var(--border-color); padding: 8px;"></textarea>
+          <button id="save-notes" class="btn btn-primary" style="margin-top: 10px; width: 100%;">Save Notes</button>
+        </div>
+      </div>
+      
+      <!-- Main browser area -->
+      <div class="main-content">
+        <div id="browser-controls">
+          <button id="back-button" class="control-button" title="Back">◀</button>
+          <button id="forward-button" class="control-button" title="Forward">▶</button>
+          <button id="reload-button" class="control-button" title="Reload">↻</button>
+          <input id="url-input" class="url-input" type="text" placeholder="Enter URL..." />
+          <button id="go-button" class="control-button" title="Go">▶</button>
+          <button id="userscripts-button" class="control-button" title="Userscripts">📜</button>
+        </div>
+        
+        <div class="browser-container">
+          <webview id="browser-view" src="https://www.torn.com" webpreferences="contextIsolation=yes, nodeIntegration=no"></webview>
+        </div>
+        
+        <div class="status-bar">
+          <div id="page-info">Ready</div>
+          <div id="active-scripts">Active Scripts: <span id="scripts-count">0</span></div>
         </div>
       </div>
     </div>
   </div>
+  
+  <!-- User Profile Modal -->
+  <div id="profile-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">User Profiles</div>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="tabs">
+          <div class="tab active" data-tab="profile-list">Profiles</div>
+          <div class="tab" data-tab="profile-edit">Edit Profile</div>
+        </div>
+        
+        <div class="tab-content active" id="profile-list">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+            <h3>Available Profiles</h3>
+            <button id="create-profile" class="btn btn-primary">Create New Profile</button>
+          </div>
+          <ul class="profile-list" id="profiles-list">
+            <!-- Profile items will be added dynamically -->
+          </ul>
+        </div>
+        
+        <div class="tab-content" id="profile-edit">
+          <form id="profile-form">
+            <div class="form-group">
+              <label class="form-label" for="profile-edit-name">Profile Name</label>
+              <input type="text" class="form-input" id="profile-edit-name" required>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profile-api-key">Torn API Key</label>
+              <input type="text" class="form-input" id="profile-api-key" placeholder="Enter your Torn API key">
+              <small>Your API key is stored locally and only used to fetch data from Torn.</small>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Settings</label>
+              <div style="margin-top: 10px;">
+                <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                  <input type="checkbox" id="setting-dark-mode">
+                  <span style="margin-left: 8px;">Dark Mode</span>
+                </label>
+                <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                  <input type="checkbox" id="setting-notifications">
+                  <span style="margin-left: 8px;">Enable Notifications</span>
+                </label>
+                <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                  <input type="checkbox" id="setting-auto-refresh">
+                  <span style="margin-left: 8px;">Auto-refresh Stats</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-group" id="refresh-interval-group" style="display: none;">
+              <label class="form-label" for="setting-refresh-interval">Refresh Interval (seconds)</label>
+              <input type="number" class="form-input" id="setting-refresh-interval" min="30" max="600" value="60">
+            </div>
+          </form>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="delete-profile" class="btn btn-danger" style="margin-right: auto; display: none;">Delete Profile</button>
+        <button class="btn btn-secondary close-modal">Cancel</button>
+        <button id="save-profile" class="btn btn-success">Save Profile</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Userscript Manager Modal -->
+  <div id="userscript-modal" class="modal">
+    <div class="modal-content" style="width: 90%; max-width: 1200px;">
+      <div class="modal-header">
+        <div class="modal-title">Userscript Manager</div>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body" style="padding: 0;">
+        <div id="userscript-editor">
+          <div class="editor-sidebar">
+            <div style="padding: 10px; display: flex; justify-content: space-between; align-items: center;">
+              <h3>Scripts</h3>
+              <button id="new-script" class="btn btn-primary" style="padding: 4px 8px; font-size: 0.85em;">New</button>
+            </div>
+            <div class="script-list" id="userscript-list">
+              <!-- Script items will be added dynamically -->
+            </div>
+          </div>
+          <div class="editor-main">
+            <div class="editor-toolbar">
+              <div>
+                <input type="text" id="script-name" class="form-input" placeholder="Script name" style="width: 200px;">
+                <input type="text" id="script-match" class="form-input" placeholder="URL match pattern" style="width: 250px; margin-left: 10px;">
+              </div>
+              <div>
+                <label style="margin-right: 10px;">
+                  <input type="checkbox" id="script-enabled"> Enabled
+                </label>
+                <button id="validate-script" class="btn btn-secondary">Validate</button>
+              </div>
+            </div>
+            <div class="editor-workspace">
+              <textarea id="code-editor"></textarea>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="delete-script" class="btn btn-danger" style="margin-right: auto;">Delete Script</button>
+        <button id="export-scripts" class="btn btn-secondary">Export All</button>
+        <button id="import-scripts" class="btn btn-secondary">Import</button>
+        <input type="file" id="import-file" accept="application/json" style="display: none;">
+        <button id="save-script" class="btn btn-success">Save Script</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div class="modal-title">Settings</div>
+        <button class="modal-close">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="tabs">
+          <div class="tab active" data-tab="general-settings">General</div>
+          <div class="tab" data-tab="appearance-settings">Appearance</div>
+          <div class="tab" data-tab="torn-settings">Torn.com</div>
+          <div class="tab" data-tab="about">About</div>
+        </div>
+        
+        <div class="tab-content active" id="general-settings">
+          <h3>General Settings</h3>
+          <div class="form-group">
+            <label style="display: flex; align-items: center; margin-bottom: 10px;">
+              <input type="checkbox" id="setting-remember-last-url">
+              <span style="margin-left: 8px;">Remember last visited URL on startup</span>
+            </label>
+            <label style="display: flex; align-items: center; margin-bottom: 10px;">
+              <input type="checkbox" id="setting-clear-cache-on-exit">
+              <span style="margin-left: 8px;">Clear browser cache on exit</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setting-default-page">Default page</label>
+            <input type="text" class="form-input" id="setting-default-page" value="https://www.torn.com">
+          </div>
+        </div>
+        
+        <div class="tab-content" id="appearance-settings">
+          <h3>Appearance</h3>
+          <div class="form-group">
+            <label style="display: flex; align-items: center; margin-bottom: 10px;">
+              <input type="checkbox" id="setting-dark-mode-app">
+              <span style="margin-left: 8px;">Dark Mode</span>
+            </label>
+            <label style="display: flex; align-items: center; margin-bottom: 10px;">
+              <input type="checkbox" id="setting-show-sidebar">
+              <span style="margin-left: 8px;">Show sidebar on startup</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setting-font-size">Font Size</label>
+            <select class="form-input" id="setting-font-size">
+              <option value="small">Small</option>
+              <option value="medium" selected>Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </div>
+        </div>
+        
+        <div class="tab-content" id="torn-settings">
+          <h3>Torn.com Settings</h3>
+          <div class="form-group">
+            <label style="display: flex; align-items: center; margin-bottom: 10px;">
+              <input type="checkbox" id="setting-auto-refresh-stats">
+              <span style="margin-left: 8px;">Auto-refresh player stats</span>
+            </label>
+            <label style="display: flex; align-items: center; margin-bottom: 10px;">
+              <input type="checkbox" id="setting-event-notifications">
+              <span style="margin-left: 8px;">Show notifications for Torn events</span>
+            </label>
+            <label style="display: flex; align-items: center; margin-bottom: 10px;">
+              <input type="checkbox" id="setting-energy-notifications">
+              <span style="margin-left: 8px;">Notify when energy is full</span>
+            </label>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setting-api-cache">API Cache Duration (minutes)</label>
+            <input type="number" class="form-input" id="setting-api-cache" min="1" max="60" value="5">
+          </div>
+        </div>
+        
+        <div class="tab-content" id="about">
+          <h3>About Torn Browser</h3>
+          <p style="margin: 15px 0;">
+            Version 1.1.0<br>
+            A specialized browser for Torn.com with enhanced features and userscript support.
+          </p>
+          <p>
+            <strong>Features:</strong>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+              <li>Torn.com API integration for real-time stats</li>
+              <li>Userscript manager with syntax highlighting and validation</li>
+              <li>Multiple user profiles</li>
+              <li>Quick navigation to important Torn pages</li>
+              <li>Dark mode support</li>
+            </ul>
+          </p>
+          <p style="margin-top: 20px;">
+            <a href="https://github.com/alxspiker/torn-browser-app" style="color: var(--accent-color);">View on GitHub</a>
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary close-modal">Cancel</button>
+        <button id="save-settings" class="btn btn-success">Save Settings</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- External Scripts -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/addon/edit/matchbrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/addon/hint/show-hint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/addon/hint/javascript-hint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/addon/lint/lint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/addon/lint/javascript-lint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jshint/2.13.6/jshint.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.4/moment.min.js"></script>
+  
+  <!-- App script -->
   <script src="renderer.js"></script>
 </body>
 </html>
