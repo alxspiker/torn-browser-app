@@ -24,32 +24,32 @@ jobs:
             artifact_name: app-ios.app
           - platform: electron
             os: windows-latest
-            artifact_path: frontend/electron/dist
+            artifact_path: frontend/electron/dist # Adjusted path based on standard electron-builder output
             artifact_name: electron-app
       fail-fast: false  # Continue with other platforms if one fails
-    
+
     steps:
     - uses: actions/checkout@v3
-    
+
     # Set up Python for backend
     - name: Set up Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.10'
-        
+
     # Set up Node.js for frontend
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '18'
-        
+
     # Install Python dependencies
     - name: Install Python dependencies
       run: |
         cd backend
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        
+
     # Update package.json to fix dependency issues - Linux version
     - name: Fix package.json (Linux)
       if: matrix.platform == 'android'
@@ -58,6 +58,7 @@ jobs:
         sed -i 's/"@capacitor\/storage": "\^5.0.6"/"@capacitor\/preferences": "\^5.0.6"/g' package.json
         sed -i 's/import { Storage } from '"'"'@capacitor\/storage'"'"'/import { Preferences } from '"'"'@capacitor\/preferences'"'"'/g' src/js/app.js
         sed -i 's/Storage\./Preferences\./g' src/js/app.js
+      working-directory: ${{ github.workspace }} # Explicitly set working directory for clarity
 
     # Update package.json to fix dependency issues - macOS version
     - name: Fix package.json (macOS)
@@ -67,20 +68,21 @@ jobs:
         sed -i '' 's/"@capacitor\/storage": "\^5.0.6"/"@capacitor\/preferences": "\^5.0.6"/g' package.json
         sed -i '' 's/import { Storage } from '"'"'@capacitor\/storage'"'"'/import { Preferences } from '"'"'@capacitor\/preferences'"'"'/g' src/js/app.js
         sed -i '' 's/Storage\./Preferences\./g' src/js/app.js
-    
+      working-directory: ${{ github.workspace }} # Explicitly set working directory for clarity
+
     # Update package.json to fix dependency issues - Windows version
     - name: Fix package.json (Windows)
       if: matrix.platform == 'electron'
       run: |
-        cd frontend
-        (Get-Content package.json) -replace '"@capacitor/storage": "\^5.0.6"', '"@capacitor/preferences": "^5.0.6"' | Set-Content package.json
-        (Get-Content src/js/app.js) -replace 'import { Storage } from ''@capacitor/storage''', 'import { Preferences } from ''@capacitor/preferences''' | Set-Content src/js/app.js
-        (Get-Content src/js/app.js) -replace 'Storage\.', 'Preferences.' | Set-Content src/js/app.js
-        
+        (Get-Content frontend\package.json) -replace '"@capacitor/storage": "\^5.0.6"', '"@capacitor/preferences": "^5.0.6"' | Set-Content frontend\package.json
+        (Get-Content frontend\src\js\app.js) -replace 'import { Storage } from ''@capacitor/storage''', 'import { Preferences } from ''@capacitor/preferences''' | Set-Content frontend\src\js\app.js
+        (Get-Content frontend\src\js\app.js) -replace 'Storage\.', 'Preferences.' | Set-Content frontend\src\js\app.js
+      shell: pwsh
+      working-directory: ${{ github.workspace }} # Explicitly set working directory for clarity
+
     # Install Node.js dependencies
     - name: Install Node.js dependencies
       run: |
-        cd frontend
         npm install
         # Install TypeScript as a dev dependency (required by Capacitor)
         npm install -D typescript
@@ -89,12 +91,13 @@ jobs:
           npm install -D @capacitor/electron electron electron-builder
         fi
       shell: bash
-        
+      working-directory: frontend # Changed working directory for npm commands
+
     # Build the frontend
     - name: Build frontend
       run: |
-        cd frontend
         npm run build
+      working-directory: frontend # Changed working directory for npm command
 
     # Android-specific steps
     - name: Set up JDK (Android only)
@@ -103,47 +106,50 @@ jobs:
         java-version: '17'
         distribution: 'temurin'
       if: matrix.platform == 'android'
-        
+
     # iOS-specific steps
     - name: Install Cocoapods (iOS only)
       run: |
         sudo gem install cocoapods
       if: matrix.platform == 'ios'
-    
+
     # Add platform
     - name: Add platform
       run: |
-        cd frontend
         npx cap add ${{ matrix.platform }}
-    
+      working-directory: frontend # Changed working directory for cap command
+
     # Sync assets
     - name: Sync Capacitor
       run: |
-        cd frontend
         npx cap sync ${{ matrix.platform }}
-    
+      working-directory: frontend # Changed working directory for cap command
+
     # Build for Android
     - name: Build Android APK
       if: matrix.platform == 'android'
       run: |
-        cd frontend/android
         chmod +x ./gradlew
         ./gradlew assembleDebug
-    
+      working-directory: frontend/android # Changed working directory for gradle command
+
     # Build for iOS
     - name: Build iOS app
       if: matrix.platform == 'ios'
       run: |
-        cd frontend/ios
-        xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath build
-        
+        # Ensure pods are installed after sync
+        pod install --repo-update
+        # Build using xcrun for better CLI handling
+        xcrun xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath ../build build
+      working-directory: frontend/ios/App # Adjusted working directory for pod install and xcodebuild
+
     # Build for Electron (Windows)
     - name: Build Electron app
       if: matrix.platform == 'electron'
+      working-directory: frontend/electron # <-- *** FIX APPLIED HERE ***
       run: |
-        cd frontend/electron
-        npm run electron:build
-      
+        npm run electron:build            # <-- *** FIX APPLIED HERE ***
+
     # Upload platform-specific artifacts
     - name: Upload artifact
       uses: actions/upload-artifact@v4
