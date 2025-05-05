@@ -141,12 +141,22 @@ jobs:
         xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath build build
       working-directory: frontend/ios
 
+    # --- Debug Step for Electron ---
+    - name: Check Electron Directory Exists (Windows)
+      if: matrix.platform == 'electron'
+      run: |
+        Write-Host "Checking directory listing for D:\a\torn-browser-app\torn-browser-app\frontend"
+        Get-ChildItem -Path frontend # List contents of frontend directory
+        Write-Host "Checking existence of D:\a\torn-browser-app\torn-browser-app\frontend\electron"
+        Test-Path -Path frontend\electron # Check if frontend\electron exists
+      shell: pwsh
+
     # Build for Electron (Windows)
     - name: Build Electron app
       if: matrix.platform == 'electron'
       run: |
         npm run electron:build
-      working-directory: frontend\electron # Use backslash for Windows path
+      working-directory: frontend\electron # Reverting to backslash, as it's native Windows
       shell: pwsh                        # Explicitly use PowerShell
 
     # Upload platform-specific artifacts
