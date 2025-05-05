@@ -154,6 +154,10 @@ jobs:
       # Ensure package.json inside frontend/electron exists and is set up
       # Or configure electron-builder via frontend/package.json 'build' section
       run: |
+        # Workaround: electron-builder is not compatible with @electron/rebuild@4.x as of May 2025
+        # If you see subpath/export errors, downgrade to @electron/rebuild@3.2.9
+        # npm install -D @electron/rebuild@3.2.9
+        # Or add this as a step before build if needed
         npx electron-builder build --win --config.asarUnpack=node_modules/@capacitor-community/electron/**/*
         if ($LASTEXITCODE -ne 0) { throw "npx electron-builder failed" }
       working-directory: frontend/electron # <--- Correct directory for electron-builder

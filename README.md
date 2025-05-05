@@ -69,6 +69,12 @@ If you want to build the Electron (desktop) version, you must use the community 
   - Make sure you have committed the entire `frontend/electron` folder and its contents.
 - **Vite/Rollup build fails to resolve @capacitor/storage:**
   - Use `@capacitor/preferences` instead of `@capacitor/storage` in your code. Update all imports and usage accordingly.
+- **electron-builder/@electron/rebuild compatibility error (subpath './lib/src/search-module' not defined):**
+  - The latest @electron/rebuild (v4.x) is not compatible with electron-builder as of May 2025. If you see errors about missing exports or subpaths, downgrade to @electron/rebuild@3.2.9:
+    ```
+    npm install -D @electron/rebuild@3.2.9
+    ```
+  - This will resolve the "subpath" and "exports" error during Electron builds.
 
 ### Additional Troubleshooting (Windows, npm, and Rollup)
 
