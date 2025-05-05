@@ -128,10 +128,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // =======================
   
   function navigate(url) {
-    if (!/^https?:\\/\\//i.test(url)) {
-      url = 'https://' + url;
-    }
-    webview.src = url;
+    // Use the exposed API from preload.js
+    window.tornBrowser.navigate(url);
     urlInput.value = url;
     
     // Save last URL to profile if setting is enabled
@@ -570,53 +568,25 @@ console.log('Hello from new userscript!');
   }
   
   function injectUserscripts() {
-    const url = webview.getURL();
-    let injectedCount = 0;
-    
-    currentUserscripts.filter(script => script.enabled && matchUrlPattern(script.match, url))
-      .forEach(script => {
-        webview.executeJavaScript(script.code)
-          .then(() => {
-            injectedCount++;
-            scriptsCount.textContent = injectedCount;
-          })
-          .catch(err => {
-            console.error('Script injection error:', err);
-          });
-      });
-  }
-  
-  function matchUrlPattern(pattern, url) {
-    if (!pattern) return false;
-    
-    // Convert URL match pattern to regex
-    let regex;
-    
     try {
-      // Handle common pattern formats
-      // 1. *://*.example.com/* format
-      // 2. https://example.com/* format
-      // 3. /regex/ format
+      const url = window.tornBrowser.getURL();
+      let injectedCount = 0;
       
-      if (pattern.startsWith('/') && pattern.endsWith('/')) {
-        // It's a regex pattern
-        regex = new RegExp(pattern.slice(1, -1));
-      } else {
-        // Convert glob pattern to regex
-        regex = new RegExp(
-          '^' + 
-          pattern
-            .replace(/\*/g, '.*')
-            .replace(/[[\](){}?+^$\\.|]/g, '\\$&')
-            .replace(/\\\.\*/g, '.*')
-          + '$'
-        );
-      }
-      
-      return regex.test(url);
+      currentUserscripts.filter(script => script.enabled && window.tornUtils.matchUrlPattern(script.match, url))
+        .forEach(script => {
+          window.tornBrowser.executeScript(script.code)
+            .then(() => {
+              injectedCount++;
+              if (scriptsCount) {
+                scriptsCount.textContent = injectedCount;
+              }
+            })
+            .catch(err => {
+              console.error('Script injection error:', err);
+            });
+        });
     } catch (err) {
-      console.error('Invalid URL pattern:', pattern, err);
-      return false;
+      console.error('Error injecting userscripts:', err);
     }
   }
   
@@ -866,14 +836,14 @@ console.log('Hello from new userscript!');
   // Event Listeners
   // =======================
   
-  // Browser navigation
+  // Browser navigation - Use the new tornBrowser API
   goButton.addEventListener('click', () => navigate(urlInput.value));
   urlInput.addEventListener('keydown', e => {
     if (e.key === 'Enter') navigate(urlInput.value);
   });
-  backButton.addEventListener('click', () => webview.goBack());
-  forwardButton.addEventListener('click', () => webview.goForward());
-  reloadButton.addEventListener('click', () => webview.reload());
+  backButton.addEventListener('click', () => window.tornBrowser.goBack());
+  forwardButton.addEventListener('click', () => window.tornBrowser.goForward());
+  reloadButton.addEventListener('click', () => window.tornBrowser.reload());
   
   // Sidebar toggle
   sidebarToggle.addEventListener('click', toggleSidebar);
