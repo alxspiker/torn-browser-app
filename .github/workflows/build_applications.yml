@@ -20,11 +20,11 @@ jobs:
             artifact_name: app-android.apk
           - platform: ios
             os: macos-latest
-            artifact_path: frontend/ios/build/Build/Products/Debug-iphonesimulator/App.app # Original working path
+            artifact_path: frontend/ios/build/Build/Products/Debug-iphonesimulator/App.app
             artifact_name: app-ios.app
           - platform: electron
             os: windows-latest
-            artifact_path: frontend/electron/dist_electron # Corrected path
+            artifact_path: frontend/electron/dist # electron-builder default output directory
             artifact_name: electron-app
       fail-fast: false
 
@@ -36,11 +36,11 @@ jobs:
       with:
         python-version: '3.10'
 
-    # Use setup-node v3 and remove caching
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '18'
+        # Removed cache settings
 
     - name: Install Python dependencies
       run: |
@@ -72,7 +72,7 @@ jobs:
       shell: pwsh
       working-directory: frontend
 
-    # Use original dependency install step structure
+    # Install dependencies including electron-builder at the top level
     - name: Install Node.js dependencies
       run: |
         npm install
@@ -80,7 +80,7 @@ jobs:
         if ("${{ matrix.platform }}" -eq "electron") {
           npm install -D @capacitor/electron electron electron-builder
         }
-      shell: pwsh # Original used pwsh here
+      shell: pwsh
       working-directory: frontend
 
     - name: Build frontend (web assets)
@@ -88,7 +88,7 @@ jobs:
       working-directory: frontend
 
     - name: Set up JDK (Android only)
-      uses: actions/setup-java@v3 # Use v3 as in original
+      uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'temurin'
@@ -99,20 +99,21 @@ jobs:
       if: matrix.platform == 'ios'
 
     - name: Add Capacitor platform ${{ matrix.platform }}
-      run: npx cap add ${{ matrix.platform }} # No --npm flag as in original
+      run: npx cap add ${{ matrix.platform }}
       working-directory: frontend
-      shell: pwsh # Original used pwsh here
+      # Use default shell for Linux/macOS, pwsh for Windows if needed
+      shell: ${{ runner.os == 'Windows' && 'pwsh' || 'bash' }}
 
     - name: Sync Capacitor assets
       run: npx cap sync ${{ matrix.platform }}
       working-directory: frontend
-      shell: pwsh # Original used pwsh here
+      shell: ${{ runner.os == 'Windows' && 'pwsh' || 'bash' }}
 
     - name: Build Android APK
       if: matrix.platform == 'android'
       run: |
         chmod +x ./gradlew
-        ./gradlew assembleDebug # Removed --no-daemon as in original
+        ./gradlew assembleDebug
       working-directory: frontend/android
 
     - name: Build iOS app
@@ -122,14 +123,17 @@ jobs:
         xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath build build
       working-directory: frontend/ios
 
+    # Build Electron app directly using electron-builder
     - name: Build Electron app
       if: matrix.platform == 'electron'
-      run: npm run electron:build
-      working-directory: frontend # Corrected working directory
-      shell: pwsh # Original used pwsh here
+      # Run electron-builder directly, targeting Windows (--win)
+      # npx ensures it uses the locally installed version
+      run: npx electron-builder build --win
+      working-directory: frontend/electron # Run from within the generated electron directory
+      shell: pwsh
 
     - name: Upload artifact (${{ matrix.artifact_name }})
-      uses: actions/upload-artifact@v4 # Keep v4 for upload
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact_name }}
         path: ${{ matrix.artifact_path }}
