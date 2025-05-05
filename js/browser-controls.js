@@ -1,7 +1,20 @@
 // browser-controls.js - Handles browser navigation controls
 class BrowserControls {
   constructor() {
+    this.webview = null;
+    this.elements = {};
+    this.defaultUrl = 'https://www.torn.com';
+    this.initialized = false;
+  }
+  
+  init() {
+    // Get webview reference
     this.webview = document.getElementById('browser-view');
+    
+    if (!this.webview) {
+      console.error('Browser webview element not found');
+      return this;
+    }
     
     // UI elements
     this.elements = {
@@ -10,77 +23,128 @@ class BrowserControls {
       backButton: document.getElementById('back-button'),
       forwardButton: document.getElementById('forward-button'),
       reloadButton: document.getElementById('reload-button'),
-      pageInfo: document.getElementById('page-info')
+      userscriptsButton: document.getElementById('userscripts-button'),
+      pageInfo: document.getElementById('page-info'),
+      scriptsCount: document.getElementById('scripts-count')
     };
     
-    // Default URL
-    this.defaultUrl = 'https://www.torn.com';
-  }
-  
-  init() {
+    // Verify all elements exist
+    const missingElements = Object.entries(this.elements)
+      .filter(([key, element]) => !element)
+      .map(([key]) => key);
+    
+    if (missingElements.length > 0) {
+      console.error('Missing UI elements:', missingElements.join(', '));
+    }
+    
     // Configure navigation controls
     this.setupNavigationControls();
     
     // Set up webview event listeners
     this.setupWebviewListeners();
     
+    this.initialized = true;
+    console.log('Browser controls initialized');
+    
     return this;
   }
   
   setupNavigationControls() {
     // Go button
-    this.elements.goButton.addEventListener('click', () => {
-      this.navigate(this.elements.urlInput.value);
-    });
+    if (this.elements.goButton) {
+      this.elements.goButton.addEventListener('click', () => {
+        if (this.elements.urlInput) {
+          this.navigate(this.elements.urlInput.value);
+        }
+      });
+    }
     
     // URL input enter key
-    this.elements.urlInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') {
-        this.navigate(this.elements.urlInput.value);
-      }
-    });
+    if (this.elements.urlInput) {
+      this.elements.urlInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter') {
+          this.navigate(this.elements.urlInput.value);
+        }
+      });
+    }
     
     // Back button
-    this.elements.backButton.addEventListener('click', () => {
-      window.tornBrowser.goBack();
-    });
+    if (this.elements.backButton) {
+      this.elements.backButton.addEventListener('click', () => {
+        this.goBack();
+      });
+    }
     
     // Forward button
-    this.elements.forwardButton.addEventListener('click', () => {
-      window.tornBrowser.goForward();
-    });
+    if (this.elements.forwardButton) {
+      this.elements.forwardButton.addEventListener('click', () => {
+        this.goForward();
+      });
+    }
     
     // Reload button
-    this.elements.reloadButton.addEventListener('click', () => {
-      window.tornBrowser.reload();
-    });
+    if (this.elements.reloadButton) {
+      this.elements.reloadButton.addEventListener('click', () => {
+        this.reload();
+      });
+    }
     
+    // Userscripts button
+    if (this.elements.userscriptsButton) {
+      this.elements.userscriptsButton.addEventListener('click', () => {
+        if (window.UI) {
+          window.UI.openModal('userscript-modal');
+        }
+      });
+    }
+    
+    // Add click handlers for quick links after sidebar is loaded
+    document.addEventListener('DOMContentLoaded', () => {
+      this.setupQuickLinks();
+    });
+  }
+  
+  setupQuickLinks() {
     // Set up quick links
-    document.querySelectorAll('.quick-link').forEach(link => {
+    const quickLinks = document.querySelectorAll('.quick-link');
+    
+    quickLinks.forEach(link => {
       link.addEventListener('click', () => {
         const url = link.getAttribute('data-url');
-        if (url) this.navigate(url);
+        if (url) {
+          this.navigate(url);
+        }
       });
     });
   }
   
   setupWebviewListeners() {
+    if (!this.webview) return;
+    
     // Loading state
     this.webview.addEventListener('did-start-loading', () => {
-      this.elements.pageInfo.textContent = 'Loading...';
+      if (this.elements.pageInfo) {
+        this.elements.pageInfo.textContent = 'Loading...';
+      }
     });
     
     this.webview.addEventListener('did-stop-loading', () => {
-      this.elements.pageInfo.textContent = 'Ready';
+      if (this.elements.pageInfo) {
+        this.elements.pageInfo.textContent = 'Ready';
+      }
     });
     
     // URL updates
     this.webview.addEventListener('did-navigate', () => {
-      this.elements.urlInput.value = this.webview.getURL();
+      if (this.elements.urlInput) {
+        this.elements.urlInput.value = this.webview.getURL();
+      }
     });
     
     this.webview.addEventListener('did-navigate-in-page', () => {
-      this.elements.urlInput.value = this.webview.getURL();
+      if (this.elements.urlInput) {
+        this.elements.urlInput.value = this.webview.getURL();
+      }
     });
     
     // Page title updates
@@ -97,29 +161,89 @@ class BrowserControls {
   }
   
   navigate(url) {
-    // Use the exposed API from preload.js
-    window.tornBrowser.navigate(url);
-    this.elements.urlInput.value = url;
+    if (!this.webview) {
+      console.error('Cannot navigate: webview not initialized');
+      return;
+    }
     
-    // Save last URL to profile if setting is enabled
-    const activeProfile = window.ProfileManager.getActiveProfile();
-    const settings = window.App.getSettings();
+    if (!url) return;
     
-    if (settings.rememberLastUrl && activeProfile) {
-      activeProfile.lastVisitedUrl = url;
-      window.ProfileManager.saveActiveProfile();
+    // Add https:// if not present
+    if (!/^https?:\/\//i.test(url)) {
+      url = 'https://' + url;
+    }
+    
+    try {
+      // Use the webview directly
+      this.webview.src = url;
+      
+      // Update URL input
+      if (this.elements.urlInput) {
+        this.elements.urlInput.value = url;
+      }
+      
+      // Save last URL to profile if setting is enabled
+      const activeProfile = window.ProfileManager?.getActiveProfile();
+      const settings = window.App?.getSettings() || {};
+      
+      if (settings.rememberLastUrl && activeProfile) {
+        activeProfile.lastVisitedUrl = url;
+        window.ProfileManager.saveActiveProfile();
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+      if (this.elements.pageInfo) {
+        this.elements.pageInfo.textContent = 'Navigation error';
+      }
+    }
+  }
+  
+  goBack() {
+    if (this.webview && this.webview.canGoBack()) {
+      this.webview.goBack();
+    }
+  }
+  
+  goForward() {
+    if (this.webview && this.webview.canGoForward()) {
+      this.webview.goForward();
+    }
+  }
+  
+  reload() {
+    if (this.webview) {
+      this.webview.reload();
     }
   }
   
   navigateToLastUrl() {
-    const activeProfile = window.ProfileManager.getActiveProfile();
-    const settings = window.App.getSettings();
-    
-    if (settings.rememberLastUrl && activeProfile && activeProfile.lastVisitedUrl) {
-      this.navigate(activeProfile.lastVisitedUrl);
-    } else {
-      this.navigate(settings.defaultPage || this.defaultUrl);
+    try {
+      const activeProfile = window.ProfileManager?.getActiveProfile();
+      const settings = window.App?.getSettings() || {};
+      
+      if (settings.rememberLastUrl && activeProfile && activeProfile.lastVisitedUrl) {
+        this.navigate(activeProfile.lastVisitedUrl);
+      } else {
+        this.navigate(settings.defaultPage || this.defaultUrl);
+      }
+    } catch (error) {
+      console.error('Error navigating to last URL:', error);
+      this.navigate(this.defaultUrl);
     }
+  }
+  
+  executeScript(code) {
+    if (this.webview) {
+      return this.webview.executeJavaScript(code);
+    }
+    return Promise.reject(new Error('Webview not available'));
+  }
+  
+  getURL() {
+    if (this.webview) {
+      return this.webview.getURL();
+    }
+    return '';
   }
 }
 
