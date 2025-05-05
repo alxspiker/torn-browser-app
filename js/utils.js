@@ -160,22 +160,83 @@ function formatCooldown(time) {
  * Load HTML template and inject it into a container
  * @param {string} templatePath - Path to the template file
  * @param {string} containerId - ID of the container element
- * @return {Promise<void>}
+ * @return {Promise<boolean>} Whether the template was successfully loaded
  */
 async function loadTemplate(templatePath, containerId) {
   try {
+    // Check if container exists
+    const container = document.getElementById(containerId);
+    if (!container) {
+      console.error(`Container element with ID '${containerId}' not found`);
+      return false;
+    }
+    
+    // Fetch template
+    console.log(`Loading template from ${templatePath}...`);
     const response = await fetch(templatePath);
+    
     if (!response.ok) {
       throw new Error(`Failed to load template: ${response.status} ${response.statusText}`);
     }
     
     const html = await response.text();
-    document.getElementById(containerId).innerHTML = html;
+    
+    // Inject template into container
+    container.innerHTML = html;
+    console.log(`Template ${templatePath} loaded successfully`);
+    
     return true;
   } catch (err) {
     console.error(`Error loading template ${templatePath}:`, err);
     return false;
   }
+}
+
+/**
+ * Load a CSS file dynamically
+ * @param {string} cssPath - Path to the CSS file
+ * @return {Promise<boolean>} Whether the CSS file was successfully loaded
+ */
+async function loadCSS(cssPath) {
+  return new Promise((resolve) => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.type = 'text/css';
+    link.href = cssPath;
+    
+    link.onload = () => {
+      console.log(`CSS file ${cssPath} loaded successfully`);
+      resolve(true);
+    };
+    
+    link.onerror = (err) => {
+      console.error(`Failed to load CSS file ${cssPath}:`, err);
+      resolve(false);
+    };
+    
+    document.head.appendChild(link);
+  });
+}
+
+/**
+ * Safely access nested object properties
+ * @param {Object} obj - Object to access
+ * @param {string} path - Path to access (e.g., 'a.b.c')
+ * @param {*} defaultValue - Default value if path doesn't exist
+ * @return {*} Value at path or default value
+ */
+function getObjectPath(obj, path, defaultValue = undefined) {
+  const keys = path.split('.');
+  let current = obj;
+  
+  for (const key of keys) {
+    if (current === undefined || current === null || typeof current !== 'object') {
+      return defaultValue;
+    }
+    current = current[key];
+  }
+  
+  return current !== undefined ? current : defaultValue;
 }
 
 // Export all functions
@@ -187,5 +248,7 @@ window.Utils = {
   showDesktopNotification,
   matchUrlPattern,
   formatCooldown,
-  loadTemplate
+  loadTemplate,
+  loadCSS,
+  getObjectPath
 };
