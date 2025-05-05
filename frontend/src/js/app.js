@@ -1,5 +1,5 @@
 import { Capacitor } from '@capacitor/core';
-import { Storage } from '@capacitor/storage';
+import { Preferences } from '@capacitor/preferences';
 import { Toast } from '@capacitor/toast';
 
 // API endpoint (change in production)
@@ -29,7 +29,7 @@ let apiKey = '';
 async function initApp() {
     try {
         // Get API key from storage
-        const { value } = await Storage.get({ key: 'tornApiKey' });
+        const { value } = await Preferences.get({ key: 'tornApiKey' });
         if (value) {
             apiKey = value;
             loadPlayerData();
@@ -183,7 +183,7 @@ function promptForApiKey() {
     const key = prompt('Please enter your Torn API key:');
     if (key) {
         apiKey = key;
-        Storage.set({ key: 'tornApiKey', value: key });
+        Preferences.set({ key: 'tornApiKey', value: key });
         loadPlayerData();
     }
 }

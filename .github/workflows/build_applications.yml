@@ -40,7 +40,7 @@ jobs:
     - name: Set up Node.js
       uses: actions/setup-node@v3 # Reverted to v3
       with:
-        node-version: '18'
+        node-version: '20.9.0'
         cache: 'npm' # Keep npm caching
         cache-dependency-path: frontend/package.json
 
@@ -79,9 +79,8 @@ jobs:
         npm ci # Use ci for faster, reliable installs in CI
         npm install -D typescript
         if ("${{ matrix.platform }}" -eq "electron") {
-          # Ensure these are installed as devDependencies in the main frontend package.json
-          # Using specific known-good versions for Capacitor 5/Electron 28
-          npm install -D @capacitor/electron@2.5.0 electron@^28.0.0 electron-builder@^24.0.0
+          # Install the community Electron plugin for Capacitor
+          npm install -D @capacitor-community/electron electron@^28.0.0 electron-builder@^24.0.0
         }
       shell: pwsh
       working-directory: frontend
@@ -107,7 +106,11 @@ jobs:
     # Run add and sync sequentially, checking for errors.
     - name: Add Capacitor platform ${{ matrix.platform }}
       run: |
-        npx cap add ${{ matrix.platform }}
+        if ("${{ matrix.platform }}" -eq "electron") {
+          npx cap add @capacitor-community/electron
+        } else {
+          npx cap add ${{ matrix.platform }}
+        }
         if ($LASTEXITCODE -ne 0) { throw "npx cap add ${{ matrix.platform }} failed" }
       working-directory: frontend
       shell: pwsh
@@ -151,7 +154,7 @@ jobs:
       # Ensure package.json inside frontend/electron exists and is set up
       # Or configure electron-builder via frontend/package.json 'build' section
       run: |
-        npx electron-builder build --win --config.asarUnpack=node_modules/@capacitor/electron/**/*
+        npx electron-builder build --win --config.asarUnpack=node_modules/@capacitor-community/electron/**/*
         if ($LASTEXITCODE -ne 0) { throw "npx electron-builder failed" }
       working-directory: frontend/electron # <--- Correct directory for electron-builder
       shell: pwsh
