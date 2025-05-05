@@ -1,0 +1,235 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Torn Browser</title>
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6fb; }
+    #controls {
+      display: flex;
+      align-items: center;
+      padding: 10px 12px;
+      background: #222e3a;
+      box-shadow: 0 2px 6px #0001;
+      gap: 8px;
+    }
+    #controls button {
+      background: #3a4a5a;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 12px;
+      font-size: 1.1em;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #controls button:hover {
+      background: #506080;
+    }
+    #controls input[type="text"] {
+      flex: 1;
+      padding: 7px 10px;
+      border: 1px solid #bbb;
+      border-radius: 4px;
+      font-size: 1em;
+      background: #fff;
+      outline: none;
+    }
+    #browser-view {
+      border: 1px solid #d0d3d8;
+      border-radius: 0 0 8px 8px;
+      background: #fff;
+      margin-bottom: 0;
+      box-shadow: 0 2px 8px #0001;
+    }
+    #settings-panel {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.25);
+      z-index: 1000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #settings-content {
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 24px #0003;
+      padding: 24px 28px 20px 28px;
+      min-width: 340px;
+      min-height: 220px;
+      max-width: 90vw;
+      max-height: 80vh;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    #close-settings {
+      background: #e53935;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 1.1em;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #close-settings:hover {
+      background: #b71c1c;
+    }
+    #userscript-manager {
+      display: flex;
+      flex-direction: row;
+      gap: 18px;
+      min-width: 500px;
+      min-height: 220px;
+      max-width: 80vw;
+      max-height: 60vh;
+    }
+    #userscript-list-panel {
+      width: 180px;
+      border-right: 1px solid #eee;
+      padding-right: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    #userscript-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      flex: 1;
+      overflow-y: auto;
+      max-height: 220px;
+    }
+    #userscript-list li {
+      padding: 6px 8px;
+      border-radius: 4px;
+      margin-bottom: 4px;
+      cursor: pointer;
+      background: #f4f6fb;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: background 0.2s;
+    }
+    #userscript-list li.selected {
+      background: #d0e2ff;
+      font-weight: bold;
+    }
+    #userscript-list li .enabled-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #2e7d32;
+      display: inline-block;
+      margin-right: 6px;
+    }
+    #userscript-list li .disabled-dot {
+      background: #bbb;
+    }
+    #userscript-editor-panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      min-width: 260px;
+    }
+    #userscript-name {
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid #bbb;
+      background: #f8fafd;
+    }
+    #userscript-area {
+      resize: vertical;
+      min-height: 80px;
+      max-height: 200px;
+      border-radius: 4px;
+      border: 1px solid #bbb;
+      font-size: 1em;
+      background: #f8fafd;
+      color: #222;
+      padding: 8px;
+    }
+    #save-userscript {
+      background: #2e7d32;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 16px;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #save-userscript:hover {
+      background: #388e3c;
+    }
+    #delete-userscript {
+      background: #e53935;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-size: 1em;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    #delete-userscript:hover {
+      background: #b71c1c;
+    }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <button id="back" title="Back">⬅️</button>
+    <button id="forward" title="Forward">➡️</button>
+    <button id="reload" title="Reload">🔄</button>
+    <input id="url" type="text" value="https://www.example.com" placeholder="Enter URL..." />
+    <button id="go" title="Go">🏁</button>
+    <button id="settings" title="Settings">⚙️</button>
+  </div>
+  <webview id="browser-view" src="https://www.example.com" style="width:100vw; height:calc(100vh - 60px);"></webview>
+  <div id="settings-panel" style="display:none;">
+    <div id="settings-content">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <b>Settings</b>
+        <button id="close-settings" title="Close">❌</button>
+      </div>
+      <hr />
+      <div id="userscript-manager">
+        <div id="userscript-list-panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <b>Userscripts</b>
+            <button id="add-userscript" title="Add">➕</button>
+          </div>
+          <ul id="userscript-list"></ul>
+        </div>
+        <div id="userscript-editor-panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;">
+            <input id="userscript-name" placeholder="Script name" style="font-size:1.1em;width:40%;" />
+            <input id="userscript-match" placeholder="Match pattern (e.g. *://*.example.com/*)" style="font-size:1em;width:40%;margin-left:8px;" />
+            <button id="delete-userscript" title="Delete" style="background:#e53935;">🗑️</button>
+            <label style="margin-left:10px;font-size:0.95em;">
+              <input type="checkbox" id="userscript-enabled" /> Enabled
+            </label>
+          </div>
+          <textarea id="userscript-area" rows="8" style="width:100%;font-family:monospace;"></textarea>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <button id="save-userscript">💾 Save</button>
+            <button id="export-userscripts" title="Export all">⬇️ Export</button>
+            <button id="import-userscripts" title="Import">⬆️ Import</button>
+            <input type="file" id="import-file" accept="application/json" style="display:none;" />
+            <span id="save-status" style="margin-left:10px;color:green;display:none;">Saved!</span>
+            <span id="script-count" style="margin-left:auto;font-size:0.95em;color:#555;"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>
