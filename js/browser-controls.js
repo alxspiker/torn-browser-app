@@ -187,8 +187,8 @@ class BrowserControls {
     
     if (!url) return;
     
-    // Add https:// if not present
-    if (!/^https?:\/\//i.test(url)) {
+    // Add https:// if not present - FIX: Corrected regex pattern
+    if (!url.match(/^https?:\/\//i)) {
       url = 'https://' + url;
     }
     
