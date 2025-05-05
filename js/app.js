@@ -16,19 +16,21 @@ class App {
     
     // UI elements for settings
     this.elements = {
-      saveSettingsButton: document.getElementById('save-settings'),
-      settingsDarkModeCheckbox: document.getElementById('setting-dark-mode-app'),
-      settingsRememberUrlCheckbox: document.getElementById('setting-remember-last-url'),
-      settingsClearCacheCheckbox: document.getElementById('setting-clear-cache-on-exit'),
-      settingsDefaultPageInput: document.getElementById('setting-default-page'),
-      settingsShowSidebarCheckbox: document.getElementById('setting-show-sidebar'),
-      settingsFontSizeSelect: document.getElementById('setting-font-size'),
-      settingsAutoRefreshStatsCheckbox: document.getElementById('setting-auto-refresh-stats'),
-      settingsEventNotificationsCheckbox: document.getElementById('setting-event-notifications'),
-      settingsEnergyNotificationsCheckbox: document.getElementById('setting-energy-notifications'),
-      settingsApiCacheInput: document.getElementById('setting-api-cache'),
-      settingsButton: document.getElementById('settings-button')
+      saveSettingsButton: null,
+      settingsDarkModeCheckbox: null,
+      settingsRememberUrlCheckbox: null,
+      settingsClearCacheCheckbox: null,
+      settingsDefaultPageInput: null,
+      settingsShowSidebarCheckbox: null,
+      settingsFontSizeSelect: null,
+      settingsAutoRefreshStatsCheckbox: null,
+      settingsEventNotificationsCheckbox: null,
+      settingsEnergyNotificationsCheckbox: null,
+      settingsApiCacheInput: null,
+      settingsButton: null
     };
+    
+    this.initialized = false;
   }
   
   async init() {
@@ -38,20 +40,32 @@ class App {
       // Load app settings
       this.loadSettings();
       
-      // Initialize UI Manager
+      // Initialize UI Manager first
       await window.UI.init();
       
+      // Get settings button reference after UI is initialized
+      this.elements.settingsButton = document.getElementById('settings-button');
+      
       // Initialize Profile Manager
-      await window.ProfileManager.init();
+      await window.ProfileManager?.init();
       
       // Initialize API Client
-      window.TornAPI.init();
+      if (window.TornAPI) {
+        window.TornAPI.init();
+      }
       
       // Initialize Userscript Manager
-      await window.UserscriptManager.init();
+      if (window.UserscriptManager) {
+        await window.UserscriptManager.init();
+      }
       
       // Initialize Browser Controls
-      window.BrowserControls.init();
+      if (window.BrowserControls) {
+        window.BrowserControls.init();
+      }
+      
+      // Initialize settings elements references
+      this.initSettingsElements();
       
       // Setup app settings event listeners
       this.setupSettingsListeners();
@@ -60,32 +74,66 @@ class App {
       this.applySettings();
       
       // Navigate to last URL or default page
-      window.BrowserControls.navigateToLastUrl();
+      if (window.BrowserControls) {
+        window.BrowserControls.navigateToLastUrl();
+      }
       
       // Request notification permissions if needed
       this.requestNotificationPermission();
       
+      this.initialized = true;
       console.log('Torn Browser App initialized successfully');
     } catch (error) {
       console.error('Error initializing app:', error);
     }
   }
   
+  initSettingsElements() {
+    // Initialize settings UI elements
+    this.elements = {
+      ...this.elements,
+      saveSettingsButton: document.getElementById('save-settings'),
+      settingsDarkModeCheckbox: document.getElementById('setting-dark-mode'),
+      settingsRememberUrlCheckbox: document.getElementById('setting-remember-last-url'),
+      settingsClearCacheCheckbox: document.getElementById('setting-clear-cache-on-exit'),
+      settingsDefaultPageInput: document.getElementById('setting-default-page'),
+      settingsShowSidebarCheckbox: document.getElementById('setting-show-sidebar'),
+      settingsFontSizeSelect: document.getElementById('setting-font-size'),
+      settingsAutoRefreshStatsCheckbox: document.getElementById('setting-auto-refresh-stats'),
+      settingsEventNotificationsCheckbox: document.getElementById('setting-event-notifications'),
+      settingsEnergyNotificationsCheckbox: document.getElementById('setting-energy-notifications'),
+      settingsApiCacheInput: document.getElementById('setting-api-cache')
+    };
+    
+    // Update settings UI with current values
+    this.updateSettingsUI();
+  }
+  
   setupSettingsListeners() {
     // Settings button
-    this.elements.settingsButton.addEventListener('click', () => {
-      UI.openModal('settings-modal');
-    });
+    if (this.elements.settingsButton) {
+      this.elements.settingsButton.addEventListener('click', () => {
+        if (window.UI) {
+          window.UI.openModal('settings-modal');
+        }
+      });
+    }
     
     // Save settings button
-    this.elements.saveSettingsButton.addEventListener('click', () => {
-      this.saveSettings();
-    });
+    if (this.elements.saveSettingsButton) {
+      this.elements.saveSettingsButton.addEventListener('click', () => {
+        this.saveSettings();
+      });
+    }
     
     // Listen for events from main process
-    window.tornAPI.onShowSettings(() => {
-      UI.openModal('settings-modal');
-    });
+    if (window.tornAPI && window.tornAPI.onShowSettings) {
+      window.tornAPI.onShowSettings(() => {
+        if (window.UI) {
+          window.UI.openModal('settings-modal');
+        }
+      });
+    }
   }
   
   loadSettings() {
@@ -98,25 +146,58 @@ class App {
     } catch (err) {
       console.error('Failed to load app settings:', err);
     }
-    
-    // Initialize settings UI
-    this.updateSettingsUI();
   }
   
   updateSettingsUI() {
-    this.elements.settingsDarkModeCheckbox.checked = this.settings.darkMode;
-    this.elements.settingsRememberUrlCheckbox.checked = this.settings.rememberLastUrl;
-    this.elements.settingsClearCacheCheckbox.checked = this.settings.clearCacheOnExit;
-    this.elements.settingsDefaultPageInput.value = this.settings.defaultPage;
-    this.elements.settingsShowSidebarCheckbox.checked = this.settings.showSidebar;
-    this.elements.settingsFontSizeSelect.value = this.settings.fontSize;
-    this.elements.settingsAutoRefreshStatsCheckbox.checked = this.settings.autoRefreshStats;
-    this.elements.settingsEventNotificationsCheckbox.checked = this.settings.eventNotifications;
-    this.elements.settingsEnergyNotificationsCheckbox.checked = this.settings.energyNotifications;
-    this.elements.settingsApiCacheInput.value = this.settings.apiCacheDuration;
+    // Update settings UI with current values
+    if (this.elements.settingsDarkModeCheckbox) {
+      this.elements.settingsDarkModeCheckbox.checked = this.settings.darkMode;
+    }
+    
+    if (this.elements.settingsRememberUrlCheckbox) {
+      this.elements.settingsRememberUrlCheckbox.checked = this.settings.rememberLastUrl;
+    }
+    
+    if (this.elements.settingsClearCacheCheckbox) {
+      this.elements.settingsClearCacheCheckbox.checked = this.settings.clearCacheOnExit;
+    }
+    
+    if (this.elements.settingsDefaultPageInput) {
+      this.elements.settingsDefaultPageInput.value = this.settings.defaultPage;
+    }
+    
+    if (this.elements.settingsShowSidebarCheckbox) {
+      this.elements.settingsShowSidebarCheckbox.checked = this.settings.showSidebar;
+    }
+    
+    if (this.elements.settingsFontSizeSelect) {
+      this.elements.settingsFontSizeSelect.value = this.settings.fontSize;
+    }
+    
+    if (this.elements.settingsAutoRefreshStatsCheckbox) {
+      this.elements.settingsAutoRefreshStatsCheckbox.checked = this.settings.autoRefreshStats;
+    }
+    
+    if (this.elements.settingsEventNotificationsCheckbox) {
+      this.elements.settingsEventNotificationsCheckbox.checked = this.settings.eventNotifications;
+    }
+    
+    if (this.elements.settingsEnergyNotificationsCheckbox) {
+      this.elements.settingsEnergyNotificationsCheckbox.checked = this.settings.energyNotifications;
+    }
+    
+    if (this.elements.settingsApiCacheInput) {
+      this.elements.settingsApiCacheInput.value = this.settings.apiCacheDuration;
+    }
   }
   
   saveSettings() {
+    // Check if the settings UI elements are available
+    if (!this.elements.settingsRememberUrlCheckbox) {
+      console.error('Settings UI elements not initialized');
+      return;
+    }
+    
     // Save general settings
     this.settings.rememberLastUrl = this.elements.settingsRememberUrlCheckbox.checked;
     this.settings.clearCacheOnExit = this.elements.settingsClearCacheCheckbox.checked;
@@ -131,33 +212,49 @@ class App {
     // Apply dark mode if changed
     const darkModeEnabled = this.elements.settingsDarkModeCheckbox.checked;
     if (darkModeEnabled !== this.settings.darkMode) {
-      UI.toggleDarkMode(darkModeEnabled);
+      if (window.UI) {
+        window.UI.toggleDarkMode(darkModeEnabled);
+      }
     }
     this.settings.darkMode = darkModeEnabled;
     
     // Apply sidebar visibility
-    UI.showSidebar(this.settings.showSidebar);
+    if (window.UI) {
+      window.UI.showSidebar(this.settings.showSidebar);
+    }
     
     // Apply font size
-    UI.setFontSize(this.settings.fontSize);
+    if (window.UI) {
+      window.UI.setFontSize(this.settings.fontSize);
+    }
     
     // Store settings in local storage
     localStorage.setItem('appSettings', JSON.stringify(this.settings));
     
     // Close modal
-    UI.closeModal('settings-modal');
-    Utils.showNotification('Settings saved');
+    if (window.UI) {
+      window.UI.closeModal('settings-modal');
+    }
+    
+    if (window.Utils) {
+      window.Utils.showNotification('Settings saved');
+    }
   }
   
   applySettings() {
+    if (!window.UI) {
+      console.error('UI Manager not initialized, cannot apply settings');
+      return;
+    }
+    
     // Apply font size
-    UI.setFontSize(this.settings.fontSize);
+    window.UI.setFontSize(this.settings.fontSize);
     
     // Apply dark mode
-    UI.toggleDarkMode(this.settings.darkMode);
+    window.UI.toggleDarkMode(this.settings.darkMode);
     
     // Apply sidebar visibility
-    UI.showSidebar(this.settings.showSidebar);
+    window.UI.showSidebar(this.settings.showSidebar);
   }
   
   requestNotificationPermission() {
