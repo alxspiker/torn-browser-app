@@ -17,16 +17,18 @@ jobs:
           - platform: android
             os: ubuntu-latest
             artifact_path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
-            artifact_name: app-android.apk
+            os_suffix: apk # Or keep specific like 'android' if preferred
+            artifact_name: app-android.${{ matrix.os_suffix }}
           - platform: ios
             os: macos-latest
             artifact_path: frontend/ios/App/build/Build/Products/Debug-iphonesimulator/App.app
-            artifact_name: app-ios.app
+            os_suffix: app # Or keep specific like 'ios' if preferred
+            artifact_name: app-ios.${{ matrix.os_suffix }}
           - platform: electron
             os: windows-latest
             artifact_path: frontend/electron/dist_electron
-            # FIX: Hardcode the OS part since it's defined in this entry
-            artifact_name: electron-app-windows
+            os_suffix: windows # Define the suffix here
+            artifact_name: electron-app-${{ matrix.os_suffix }} # Use the defined suffix
       fail-fast: false
 
     steps:
@@ -42,7 +44,7 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
-        cache-dependency-path: frontend/package-lock.json
+        cache-dependency-path: '**/package-lock.json' # More robust path
 
     - name: Install Python dependencies
       run: |
