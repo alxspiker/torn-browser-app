@@ -5,7 +5,7 @@ on:
     branches: [ main ]
   pull_request:
     branches: [ main ]
-  workflow_dispatch:  # Allows manual triggering
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,42 +20,35 @@ jobs:
             artifact_name: app-android.apk
           - platform: ios
             os: macos-latest
-            # Adjust iOS artifact path if necessary, derivedDataPath can be tricky
             artifact_path: frontend/ios/App/build/Build/Products/Debug-iphonesimulator/App.app
             artifact_name: app-ios.app
           - platform: electron
             os: windows-latest
-            # Artifact path points to the directory containing the built Electron app (adjust if your build script outputs differently)
-            artifact_path: frontend/electron/dist_electron # Electron builder default output dir
-            artifact_name: electron-app-${{ runner.os }} # Include OS in artifact name
-      fail-fast: false  # Continue with other platforms if one fails
+            artifact_path: frontend/electron/dist_electron
+            artifact_name: electron-app-${{ matrix.os }}
+      fail-fast: false
 
     steps:
-    - uses: actions/checkout@v4 # Use latest checkout action
+    - uses: actions/checkout@v4
 
-    # Set up Python for backend
     - name: Set up Python
-      uses: actions/setup-python@v5 # Use latest setup-python
+      uses: actions/setup-python@v5
       with:
         python-version: '3.10'
 
-    # Set up Node.js for frontend
     - name: Set up Node.js
-      uses: actions/setup-node@v4 # Use latest setup-node
+      uses: actions/setup-node@v4
       with:
         node-version: '18'
-        cache: 'npm' # Enable npm caching
-        cache-dependency-path: frontend/package-lock.json # Specify lock file for caching
+        cache: 'npm'
+        cache-dependency-path: frontend/package-lock.json
 
-    # Install Python dependencies
     - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
       working-directory: backend
 
-    # === Dependency Fixes (Run BEFORE npm install) ===
-    # Use PowerShell for consistency on Windows for file modifications
     - name: Fix package.json and app.js (Windows)
       if: matrix.platform == 'electron'
       run: |
@@ -68,46 +61,37 @@ jobs:
     - name: Fix package.json and app.js (Linux/macOS)
       if: runner.os == 'Linux' || runner.os == 'macOS'
       run: |
-        # Use different sed args based on OS
         if [[ "$RUNNER_OS" == "macOS" ]]; then
           sed -i '' 's/"@capacitor\/storage": "\^5.0.6"/"@capacitor\/preferences": "\^5.0.6"/g' package.json
           sed -i '' 's/import { Storage } from '"'"'@capacitor\/storage'"'"'/import { Preferences } from '"'"'@capacitor\/preferences'"'"'/g' src/js/app.js
           sed -i '' 's/Storage\./Preferences\./g' src/js/app.js
-        else # Linux
+        else
           sed -i 's/"@capacitor\/storage": "\^5.0.6"/"@capacitor\/preferences": "\^5.0.6"/g' package.json
           sed -i 's/import { Storage } from '"'"'@capacitor\/storage'"'"'/import { Preferences } from '"'"'@capacitor\/preferences'"'"'/g' src/js/app.js
           sed -i 's/Storage\./Preferences\./g' src/js/app.js
         fi
       shell: bash
       working-directory: frontend
-    # === End Dependency Fixes ===
 
-    # Install Node.js dependencies (General)
     - name: Install Node.js dependencies
       run: npm install
       working-directory: frontend
 
-    # Install TypeScript (Required by Capacitor)
     - name: Install TypeScript
       run: npm install -D typescript
       working-directory: frontend
 
-    # Install Electron-specific dev dependencies (only for Electron job)
     - name: Install Electron dependencies
       if: matrix.platform == 'electron'
       run: npm install -D @capacitor/electron electron electron-builder
       working-directory: frontend
-      # Using default shell is usually fine here, but pwsh is okay too
-      # shell: pwsh
 
-    # Build the frontend web assets
     - name: Build frontend (web assets)
       run: npm run build
       working-directory: frontend
 
-    # === Platform Specific Setup ===
     - name: Set up JDK (Android only)
-      uses: actions/setup-java@v4 # Use latest setup-java
+      uses: actions/setup-java@v4
       with:
         java-version: '17'
         distribution: 'temurin'
@@ -116,64 +100,38 @@ jobs:
     - name: Install Cocoapods (iOS only)
       run: sudo gem install cocoapods
       if: matrix.platform == 'ios'
-    # === End Platform Specific Setup ===
 
-    # Add the Capacitor platform (This creates the platform-specific project folder)
     - name: Add Capacitor platform ${{ matrix.platform }}
-      run: npx cap add ${{ matrix.platform }} --npm # Use --npm flag if capacitor asks for yarn/npm choice
+      run: npx cap add ${{ matrix.platform }} --npm
       working-directory: frontend
-      # shell: pwsh # Optional, default should work
 
-    # Sync web assets into the native/platform project
     - name: Sync Capacitor assets
       run: npx cap sync ${{ matrix.platform }}
       working-directory: frontend
-      # shell: pwsh # Optional, default should work
 
-    # === Debug Step (Optional - can be removed once working) ===
-    - name: List Frontend Directory Contents After Sync (Electron only)
-      if: matrix.platform == 'electron'
-      run: Get-ChildItem -Path . -Recurse -ErrorAction SilentlyContinue | Format-Table -AutoSize | Out-String -Width 4096
-      shell: pwsh
-      working-directory: frontend
-    # === End Debug Step ===
-
-    # --- Platform-Specific Builds ---
-
-    # Build Android
     - name: Build Android APK
       if: matrix.platform == 'android'
       run: |
         chmod +x ./gradlew
-        ./gradlew assembleDebug --no-daemon # Add --no-daemon for potentially cleaner runs in CI
+        ./gradlew assembleDebug --no-daemon
       working-directory: frontend/android
 
-    # Build iOS
     - name: Build iOS app
       if: matrix.platform == 'ios'
       run: |
-        # Ensure Pods are installed/updated correctly within the iOS project structure
         pod install --project-directory=App --repo-update
-        # Build using xcodebuild - adjust scheme/config/sdk if needed
-        xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO # Disable code signing for simulator build
-        # Note: derivedDataPath is removed, let xcodebuild use default or specify a path RELATIVE to working-directory if needed
+        xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
       working-directory: frontend/ios
 
-    # Build Electron (Run from frontend directory)
     - name: Build Electron app
       if: matrix.platform == 'electron'
-      # *** CRITICAL CHANGE: Run from 'frontend', not 'frontend\electron' ***
-      # The electron:build script in package.json should handle paths correctly.
       run: npm run electron:build
       working-directory: frontend
-      shell: pwsh # Keep pwsh for consistency on Windows if needed
+      shell: pwsh
 
-    # --- End Platform-Specific Builds ---
-
-    # Upload Artifacts
     - name: Upload artifact (${{ matrix.artifact_name }})
-      uses: actions/upload-artifact@v4 # Use latest upload-artifact
+      uses: actions/upload-artifact@v4
       with:
         name: ${{ matrix.artifact_name }}
         path: ${{ matrix.artifact_path }}
-        if-no-files-found: error # Error if the artifact wasn't created
+        if-no-files-found: error
