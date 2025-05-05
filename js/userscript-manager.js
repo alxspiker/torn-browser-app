@@ -4,139 +4,231 @@ class UserscriptManager {
     this.userscripts = [];
     this.selectedScriptIndex = 0;
     this.codeEditor = null;
+    this.initialized = false;
     
-    // UI elements
-    this.elements = {
-      userscriptList: document.getElementById('userscript-list'),
-      newScriptButton: document.getElementById('new-script'),
-      scriptNameInput: document.getElementById('script-name'),
-      scriptMatchInput: document.getElementById('script-match'),
-      scriptEnabledCheckbox: document.getElementById('script-enabled'),
-      validateScriptButton: document.getElementById('validate-script'),
-      saveScriptButton: document.getElementById('save-script'),
-      deleteScriptButton: document.getElementById('delete-script'),
-      exportScriptsButton: document.getElementById('export-scripts'),
-      importScriptsButton: document.getElementById('import-scripts'),
-      importFileInput: document.getElementById('import-file'),
-      userscriptsButton: document.getElementById('userscripts-button'),
-      scriptsCount: document.getElementById('scripts-count')
-    };
+    // UI elements will be initialized in init()
+    this.elements = {};
   }
   
   async init() {
-    // Initialize CodeMirror when first needed
-    this.setupEventListeners();
-    
-    // Register event from main process
-    window.tornAPI.onShowUserscripts(() => {
-      UI.openModal('userscript-modal');
-      if (!this.codeEditor) {
-        setTimeout(() => this.initCodeEditor(), 100);
+    try {
+      console.log('Initializing Userscript Manager...');
+      
+      // Initialize UI elements
+      this.elements = {
+        userscriptList: document.getElementById('userscript-list'),
+        newScriptButton: document.getElementById('new-script'),
+        scriptNameInput: document.getElementById('script-name'),
+        scriptMatchInput: document.getElementById('script-match'),
+        scriptEnabledCheckbox: document.getElementById('script-enabled'),
+        validateScriptButton: document.getElementById('validate-script'),
+        saveScriptButton: document.getElementById('save-script'),
+        deleteScriptButton: document.getElementById('delete-script'),
+        exportScriptsButton: document.getElementById('export-scripts'),
+        importScriptsButton: document.getElementById('import-scripts'),
+        importFileInput: document.getElementById('import-file'),
+        userscriptsButton: document.getElementById('userscripts-button'),
+        scriptsCount: document.getElementById('scripts-count'),
+        codeEditorElement: document.getElementById('code-editor')
+      };
+      
+      // Check if all required elements are available
+      if (!this.elements.userscriptList || !this.elements.codeEditorElement) {
+        console.warn('Some userscript manager UI elements not found, they might not be loaded yet');
       }
-    });
-    
-    return this;
+      
+      // Initialize event listeners
+      this.setupEventListeners();
+      
+      // Register event from main process
+      if (window.tornAPI && window.tornAPI.onShowUserscripts) {
+        window.tornAPI.onShowUserscripts(() => {
+          if (window.UI) {
+            window.UI.openModal('userscript-modal');
+            this.ensureCodeEditorInitialized();
+          }
+        });
+      }
+      
+      // Pre-load userscripts
+      this.loadUserscripts();
+      
+      this.initialized = true;
+      console.log('Userscript Manager initialized');
+      
+      return this;
+    } catch (error) {
+      console.error('Error initializing Userscript Manager:', error);
+      return this;
+    }
   }
   
   setupEventListeners() {
+    // Skip if UI elements aren't available yet
+    if (!this.elements.userscriptsButton) return;
+    
     // Userscript modal button
     this.elements.userscriptsButton.addEventListener('click', () => {
-      UI.openModal('userscript-modal');
-      if (!this.codeEditor) {
-        setTimeout(() => this.initCodeEditor(), 100);
+      if (window.UI) {
+        window.UI.openModal('userscript-modal');
+        this.ensureCodeEditorInitialized();
       }
     });
     
     // New script button
-    this.elements.newScriptButton.addEventListener('click', () => this.createNewScript());
+    if (this.elements.newScriptButton) {
+      this.elements.newScriptButton.addEventListener('click', () => this.createNewScript());
+    }
     
     // Save script button
-    this.elements.saveScriptButton.addEventListener('click', () => this.saveCurrentScript());
+    if (this.elements.saveScriptButton) {
+      this.elements.saveScriptButton.addEventListener('click', () => this.saveCurrentScript());
+    }
     
     // Delete script button
-    this.elements.deleteScriptButton.addEventListener('click', () => this.deleteCurrentScript());
+    if (this.elements.deleteScriptButton) {
+      this.elements.deleteScriptButton.addEventListener('click', () => this.deleteCurrentScript());
+    }
     
     // Validate script button
-    this.elements.validateScriptButton.addEventListener('click', () => this.validateCurrentScript());
+    if (this.elements.validateScriptButton) {
+      this.elements.validateScriptButton.addEventListener('click', () => this.validateCurrentScript());
+    }
     
     // Export scripts button
-    this.elements.exportScriptsButton.addEventListener('click', () => this.exportAllScripts());
+    if (this.elements.exportScriptsButton) {
+      this.elements.exportScriptsButton.addEventListener('click', () => this.exportAllScripts());
+    }
     
     // Import scripts button
-    this.elements.importScriptsButton.addEventListener('click', () => this.importScripts());
+    if (this.elements.importScriptsButton) {
+      this.elements.importScriptsButton.addEventListener('click', () => this.importScripts());
+    }
     
     // Import file input
-    this.elements.importFileInput.addEventListener('change', (e) => this.handleImportedFile(e));
+    if (this.elements.importFileInput) {
+      this.elements.importFileInput.addEventListener('change', (e) => this.handleImportedFile(e));
+    }
     
     // Script name input
-    this.elements.scriptNameInput.addEventListener('input', () => {
-      if (this.userscripts.length > 0) {
-        this.userscripts[this.selectedScriptIndex].name = this.elements.scriptNameInput.value;
-        this.renderUserscriptList();
-      }
-    });
+    if (this.elements.scriptNameInput) {
+      this.elements.scriptNameInput.addEventListener('input', () => {
+        if (this.userscripts.length > 0) {
+          this.userscripts[this.selectedScriptIndex].name = this.elements.scriptNameInput.value;
+          this.renderUserscriptList();
+        }
+      });
+    }
     
     // Script enabled checkbox
-    this.elements.scriptEnabledCheckbox.addEventListener('change', () => {
-      if (this.userscripts.length > 0) {
-        this.userscripts[this.selectedScriptIndex].enabled = this.elements.scriptEnabledCheckbox.checked;
-        this.renderUserscriptList();
-        this.saveUserscripts();
-      }
-    });
+    if (this.elements.scriptEnabledCheckbox) {
+      this.elements.scriptEnabledCheckbox.addEventListener('change', () => {
+        if (this.userscripts.length > 0) {
+          this.userscripts[this.selectedScriptIndex].enabled = this.elements.scriptEnabledCheckbox.checked;
+          this.renderUserscriptList();
+          this.saveUserscripts();
+        }
+      });
+    }
+  }
+  
+  ensureCodeEditorInitialized() {
+    if (!this.codeEditor && this.elements.codeEditorElement) {
+      setTimeout(() => this.initCodeEditor(), 100);
+    }
   }
   
   initCodeEditor() {
-    this.codeEditor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
-      mode: 'javascript',
-      theme: 'material',
-      lineNumbers: true,
-      matchBrackets: true,
-      autoCloseBrackets: true,
-      tabSize: 2,
-      indentWithTabs: false,
-      extraKeys: {
-        'Ctrl-Space': 'autocomplete'
-      },
-      gutters: ['CodeMirror-lint-markers'],
-      lint: {
-        esversion: 11,
-        asi: true
+    try {
+      if (!this.elements.codeEditorElement) {
+        console.error('Code editor element not found');
+        return;
       }
-    });
-    
-    this.codeEditor.on('change', () => {
-      // Auto-save after a delay
-      if (window.autoSaveTimeout) {
-        clearTimeout(window.autoSaveTimeout);
+      
+      if (this.codeEditor) {
+        // Editor already initialized
+        return;
       }
-      window.autoSaveTimeout = setTimeout(() => {
-        if (this.userscripts.length > 0) {
-          this.userscripts[this.selectedScriptIndex].code = this.codeEditor.getValue();
-          this.saveUserscripts();
+      
+      // Check if CodeMirror is available
+      if (typeof CodeMirror === 'undefined') {
+        console.error('CodeMirror not loaded');
+        if (window.Utils) {
+          window.Utils.showNotification('CodeMirror editor not loaded', 'error');
         }
-      }, 2000);
-    });
-    
-    // Load userscripts after editor is ready
-    this.loadUserscripts();
+        return;
+      }
+      
+      this.codeEditor = CodeMirror.fromTextArea(this.elements.codeEditorElement, {
+        mode: 'javascript',
+        theme: 'material',
+        lineNumbers: true,
+        matchBrackets: true,
+        autoCloseBrackets: true,
+        tabSize: 2,
+        indentWithTabs: false,
+        extraKeys: {
+          'Ctrl-Space': 'autocomplete'
+        },
+        gutters: ['CodeMirror-lint-markers'],
+        lint: {
+          esversion: 11,
+          asi: true
+        }
+      });
+      
+      this.codeEditor.on('change', () => {
+        // Auto-save after a delay
+        if (window.autoSaveTimeout) {
+          clearTimeout(window.autoSaveTimeout);
+        }
+        window.autoSaveTimeout = setTimeout(() => {
+          if (this.userscripts.length > 0) {
+            this.userscripts[this.selectedScriptIndex].code = this.codeEditor.getValue();
+            this.saveUserscripts();
+          }
+        }, 2000);
+      });
+      
+      // Update editor with current script
+      this.updateScriptEditor();
+      
+      console.log('CodeMirror editor initialized');
+    } catch (error) {
+      console.error('Error initializing code editor:', error);
+    }
   }
   
   loadUserscripts() {
-    const activeProfile = window.ProfileManager.getActiveProfile();
-    
-    if (activeProfile && activeProfile.userscripts) {
-      this.userscripts = activeProfile.userscripts;
-    } else {
-      this.userscripts = [this.getDefaultUserscript()];
-      if (activeProfile) {
-        activeProfile.userscripts = this.userscripts;
-        window.ProfileManager.saveActiveProfile();
+    try {
+      if (!window.ProfileManager || !window.ProfileManager.getActiveProfile) {
+        console.error('ProfileManager not available');
+        return;
       }
+      
+      const activeProfile = window.ProfileManager.getActiveProfile();
+      
+      if (activeProfile && activeProfile.userscripts) {
+        this.userscripts = activeProfile.userscripts;
+      } else {
+        this.userscripts = [this.getDefaultUserscript()];
+        if (activeProfile) {
+          activeProfile.userscripts = this.userscripts;
+          window.ProfileManager.saveActiveProfile();
+        }
+      }
+      
+      this.renderUserscriptList();
+      
+      // If code editor is already initialized, update it
+      if (this.codeEditor) {
+        this.updateScriptEditor();
+      }
+    } catch (error) {
+      console.error('Error loading userscripts:', error);
+      this.userscripts = [this.getDefaultUserscript()];
+      this.renderUserscriptList();
     }
-    
-    this.renderUserscriptList();
-    this.updateScriptEditor();
   }
   
   getDefaultUserscript() {
@@ -192,11 +284,19 @@ console.log('Hello from new userscript!');
     
     const script = this.userscripts[this.selectedScriptIndex];
     
-    this.elements.scriptNameInput.value = script.name;
-    this.elements.scriptMatchInput.value = script.match || '*://*.torn.com/*';
-    this.elements.scriptEnabledCheckbox.checked = script.enabled;
+    if (this.elements.scriptNameInput) {
+      this.elements.scriptNameInput.value = script.name;
+    }
     
-    this.codeEditor.setValue(script.code);
+    if (this.elements.scriptMatchInput) {
+      this.elements.scriptMatchInput.value = script.match || '*://*.torn.com/*';
+    }
+    
+    if (this.elements.scriptEnabledCheckbox) {
+      this.elements.scriptEnabledCheckbox.checked = script.enabled;
+    }
+    
+    this.codeEditor.setValue(script.code || '');
     this.codeEditor.clearHistory();
   }
   
@@ -211,25 +311,38 @@ console.log('Hello from new userscript!');
   }
   
   saveCurrentScript() {
-    if (this.userscripts.length === 0) return;
+    if (this.userscripts.length === 0 || !this.codeEditor) return;
     
     const script = this.userscripts[this.selectedScriptIndex];
     
-    script.name = this.elements.scriptNameInput.value.trim() || 'Untitled Script';
-    script.match = this.elements.scriptMatchInput.value.trim() || '*://*.torn.com/*';
-    script.enabled = this.elements.scriptEnabledCheckbox.checked;
+    if (this.elements.scriptNameInput) {
+      script.name = this.elements.scriptNameInput.value.trim() || 'Untitled Script';
+    }
+    
+    if (this.elements.scriptMatchInput) {
+      script.match = this.elements.scriptMatchInput.value.trim() || '*://*.torn.com/*';
+    }
+    
+    if (this.elements.scriptEnabledCheckbox) {
+      script.enabled = this.elements.scriptEnabledCheckbox.checked;
+    }
+    
     script.code = this.codeEditor.getValue();
     
     this.renderUserscriptList();
     this.saveUserscripts();
     
     // Show confirmation
-    Utils.showNotification('Script saved successfully');
+    if (window.Utils) {
+      window.Utils.showNotification('Script saved successfully');
+    }
   }
   
   deleteCurrentScript() {
     if (this.userscripts.length <= 1) {
-      Utils.showNotification('Cannot delete the last script', 'error');
+      if (window.Utils) {
+        window.Utils.showNotification('Cannot delete the last script', 'error');
+      }
       return;
     }
     
@@ -246,6 +359,11 @@ console.log('Hello from new userscript!');
   }
   
   saveUserscripts() {
+    if (!window.ProfileManager || !window.ProfileManager.getActiveProfile) {
+      console.error('ProfileManager not available');
+      return;
+    }
+    
     const activeProfile = window.ProfileManager.getActiveProfile();
     if (!activeProfile) return;
     
@@ -257,6 +375,23 @@ console.log('Hello from new userscript!');
     if (!this.codeEditor || this.userscripts.length === 0) return;
     
     const code = this.codeEditor.getValue();
+    
+    if (window.tornUtils && window.tornUtils.validateUserscript) {
+      const result = window.tornUtils.validateUserscript(code);
+      
+      if (result.valid) {
+        if (window.Utils) {
+          window.Utils.showNotification('Script validation passed');
+        }
+      } else {
+        if (window.Utils) {
+          window.Utils.showNotification(`Validation failed: ${result.errors.join(', ')}`, 'error');
+        }
+      }
+      return;
+    }
+    
+    // Fallback validation if tornUtils is not available
     const hasMatchDirective = /\/\/\s*@match\s+.+/i.test(code);
     const hasIncludeDirective = /\/\/\s*@include\s+.+/i.test(code);
     const hasNameDirective = /\/\/\s*@name\s+.+/i.test(code);
@@ -268,9 +403,13 @@ console.log('Hello from new userscript!');
     if (!(hasMatchDirective || hasIncludeDirective)) errors.push('Missing @match or @include directive');
     
     if (valid) {
-      Utils.showNotification('Script validation passed');
+      if (window.Utils) {
+        window.Utils.showNotification('Script validation passed');
+      }
     } else {
-      Utils.showNotification(`Validation failed: ${errors.join(', ')}`, 'error');
+      if (window.Utils) {
+        window.Utils.showNotification(`Validation failed: ${errors.join(', ')}`, 'error');
+      }
     }
   }
   
@@ -290,7 +429,9 @@ console.log('Hello from new userscript!');
   }
   
   importScripts() {
-    this.elements.importFileInput.click();
+    if (this.elements.importFileInput) {
+      this.elements.importFileInput.click();
+    }
   }
   
   handleImportedFile(e) {
@@ -317,40 +458,71 @@ console.log('Hello from new userscript!');
             this.renderUserscriptList();
             this.updateScriptEditor();
             
-            Utils.showNotification(`Successfully imported ${data.length} userscript(s)`);
+            if (window.Utils) {
+              window.Utils.showNotification(`Successfully imported ${data.length} userscript(s)`);
+            }
           }
         } else {
-          Utils.showNotification('Invalid userscript file format', 'error');
+          if (window.Utils) {
+            window.Utils.showNotification('Invalid userscript file format', 'error');
+          }
         }
       } catch (err) {
-        Utils.showNotification('Failed to parse import file', 'error');
+        if (window.Utils) {
+          window.Utils.showNotification('Failed to parse import file', 'error');
+        }
         console.error('Import error:', err);
       }
     };
     
     reader.readAsText(file);
-    this.elements.importFileInput.value = '';
+    if (this.elements.importFileInput) {
+      this.elements.importFileInput.value = '';
+    }
   }
   
   injectUserscripts(url) {
     try {
-      let injectedCount = 0;
+      if (!url || !window.tornBrowser || !window.tornBrowser.executeScript) {
+        console.error('Browser API not available for script injection');
+        return 0;
+      }
       
-      this.userscripts.filter(script => script.enabled && Utils.matchUrlPattern(script.match, url))
-        .forEach(script => {
-          window.tornBrowser.executeScript(script.code)
-            .then(() => {
-              injectedCount++;
-              if (this.elements.scriptsCount) {
-                this.elements.scriptsCount.textContent = injectedCount;
-              }
-            })
-            .catch(err => {
-              console.error('Script injection error:', err);
-            });
-        });
+      let injectedCount = 0;
+      const matchingScripts = this.userscripts.filter(script => {
+        if (!script.enabled) return false;
+        
+        // Use the utility function if available, otherwise use simple matching
+        if (window.Utils && window.Utils.matchUrlPattern) {
+          return window.Utils.matchUrlPattern(script.match, url);
+        } else if (window.tornUtils && window.tornUtils.matchUrlPattern) {
+          return window.tornUtils.matchUrlPattern(script.match, url);
+        } else {
+          // Very simple fallback matcher
+          const pattern = script.match || '*://*.torn.com/*';
+          return (pattern === '*' || url.includes(pattern.replace(/\*/g, '')));
+        }
+      });
+      
+      // Inject matching scripts
+      matchingScripts.forEach(script => {
+        window.tornBrowser.executeScript(script.code)
+          .then(() => {
+            injectedCount++;
+            if (this.elements.scriptsCount) {
+              this.elements.scriptsCount.textContent = injectedCount;
+            }
+          })
+          .catch(err => {
+            console.error('Script injection error:', err);
+          });
+      });
+      
+      console.log(`Injected ${matchingScripts.length} userscripts for URL: ${url}`);
+      return matchingScripts.length;
     } catch (err) {
       console.error('Error injecting userscripts:', err);
+      return 0;
     }
   }
   
