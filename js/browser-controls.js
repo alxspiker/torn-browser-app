@@ -8,45 +8,52 @@ class BrowserControls {
   }
   
   init() {
-    // Get webview reference
-    this.webview = document.getElementById('browser-view');
-    
-    if (!this.webview) {
-      console.error('Browser webview element not found');
+    try {
+      console.log('Initializing Browser Controls...');
+      
+      // Get webview reference
+      this.webview = document.getElementById('browser-view');
+      
+      if (!this.webview) {
+        console.error('Browser webview element not found');
+        return this;
+      }
+      
+      // UI elements
+      this.elements = {
+        urlInput: document.getElementById('url-input'),
+        goButton: document.getElementById('go-button'),
+        backButton: document.getElementById('back-button'),
+        forwardButton: document.getElementById('forward-button'),
+        reloadButton: document.getElementById('reload-button'),
+        userscriptsButton: document.getElementById('userscripts-button'),
+        pageInfo: document.getElementById('page-info'),
+        scriptsCount: document.getElementById('scripts-count')
+      };
+      
+      // Verify all elements exist
+      const missingElements = Object.entries(this.elements)
+        .filter(([key, element]) => !element)
+        .map(([key]) => key);
+      
+      if (missingElements.length > 0) {
+        console.error('Missing browser control UI elements:', missingElements.join(', '));
+      }
+      
+      // Configure navigation controls
+      this.setupNavigationControls();
+      
+      // Set up webview event listeners
+      this.setupWebviewListeners();
+      
+      this.initialized = true;
+      console.log('Browser controls initialized');
+      
+      return this;
+    } catch (error) {
+      console.error('Error initializing browser controls:', error);
       return this;
     }
-    
-    // UI elements
-    this.elements = {
-      urlInput: document.getElementById('url-input'),
-      goButton: document.getElementById('go-button'),
-      backButton: document.getElementById('back-button'),
-      forwardButton: document.getElementById('forward-button'),
-      reloadButton: document.getElementById('reload-button'),
-      userscriptsButton: document.getElementById('userscripts-button'),
-      pageInfo: document.getElementById('page-info'),
-      scriptsCount: document.getElementById('scripts-count')
-    };
-    
-    // Verify all elements exist
-    const missingElements = Object.entries(this.elements)
-      .filter(([key, element]) => !element)
-      .map(([key]) => key);
-    
-    if (missingElements.length > 0) {
-      console.error('Missing UI elements:', missingElements.join(', '));
-    }
-    
-    // Configure navigation controls
-    this.setupNavigationControls();
-    
-    // Set up webview event listeners
-    this.setupWebviewListeners();
-    
-    this.initialized = true;
-    console.log('Browser controls initialized');
-    
-    return this;
   }
   
   setupNavigationControls() {
@@ -94,14 +101,19 @@ class BrowserControls {
       this.elements.userscriptsButton.addEventListener('click', () => {
         if (window.UI) {
           window.UI.openModal('userscript-modal');
+          
+          // Initialize CodeMirror if not already initialized
+          if (window.UserscriptManager && typeof window.UserscriptManager.initCodeEditor === 'function') {
+            setTimeout(() => {
+              window.UserscriptManager.initCodeEditor();
+            }, 100);
+          }
         }
       });
     }
     
-    // Add click handlers for quick links after sidebar is loaded
-    document.addEventListener('DOMContentLoaded', () => {
-      this.setupQuickLinks();
-    });
+    // Add click handlers for quick links
+    this.setupQuickLinks();
   }
   
   setupQuickLinks() {
@@ -154,8 +166,15 @@ class BrowserControls {
     
     // Inject userscripts when page is ready
     this.webview.addEventListener('dom-ready', () => {
-      if (window.UserscriptManager) {
-        window.UserscriptManager.injectUserscripts(this.webview.getURL());
+      if (window.UserscriptManager && typeof window.UserscriptManager.injectUserscripts === 'function') {
+        try {
+          window.UserscriptManager.injectUserscripts(this.webview.getURL());
+        } catch (error) {
+          console.error('Error injecting userscripts:', error);
+          if (window.Utils) {
+            window.Utils.showNotification('Error injecting userscripts', 'error');
+          }
+        }
       }
     });
   }
@@ -169,7 +188,7 @@ class BrowserControls {
     if (!url) return;
     
     // Add https:// if not present
-    if (!/^https?:\/\//i.test(url)) {
+    if (!/^https?:\\/\\//i.test(url)) {
       url = 'https://' + url;
     }
     
