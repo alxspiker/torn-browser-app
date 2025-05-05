@@ -32,7 +32,8 @@
     "electron": "^26.2.2",
     "electron-builder": "~23.6.0",
     "electron-rebuild": "^3.2.9",
-    "typescript": "^5.0.4"
+    "typescript": "^5.0.4",
+    "@electron/rebuild": "3.2.9"
   },
   "keywords": [
     "capacitor",
