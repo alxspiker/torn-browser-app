@@ -24,24 +24,24 @@ jobs:
             artifact_name: app-ios.app
           - platform: electron
             os: windows-latest
-            artifact_path: frontend/electron/dist_electron
+            artifact_path: frontend/electron/dist_electron # Corrected path for electron-builder output
             artifact_name: electron-app
       fail-fast: false
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v4 # Keep latest checkout
 
     - name: Set up Python
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v5 # Keep latest python
       with:
         python-version: '3.10'
 
+    # Revert setup-node to v3, but keep caching attempt with specific path
     - name: Set up Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v3
       with:
         node-version: '18'
         cache: 'npm'
-        # Revert to specific path for caching
         cache-dependency-path: frontend/package-lock.json
 
     - name: Install Python dependencies
@@ -92,7 +92,7 @@ jobs:
       working-directory: frontend
 
     - name: Set up JDK (Android only)
-      uses: actions/setup-java@v4
+      uses: actions/setup-java@v4 # Keep latest java
       with:
         java-version: '17'
         distribution: 'temurin'
@@ -131,7 +131,7 @@ jobs:
       shell: pwsh
 
     - name: Upload artifact (${{ matrix.artifact_name }})
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v4 # Keep latest upload
       with:
         name: ${{ matrix.artifact_name }}
         path: ${{ matrix.artifact_path }}
