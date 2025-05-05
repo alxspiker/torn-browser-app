@@ -2,69 +2,131 @@
 class ApiClient {
   constructor() {
     this.refreshInterval = null;
+    this.initialized = false;
     
     // UI elements
-    this.elements = {
-      refreshStatsButton: document.getElementById('refresh-stats'),
-      pageInfo: document.getElementById('page-info'),
-      statEnergy: document.getElementById('stat-energy'),
-      statNerve: document.getElementById('stat-nerve'),
-      statHappy: document.getElementById('stat-happy'),
-      statLife: document.getElementById('stat-life'),
-      statChain: document.getElementById('stat-chain'),
-      statMoney: document.getElementById('stat-money'),
-      statPoints: document.getElementById('stat-points'),
-      cooldownDrug: document.getElementById('cooldown-drug'),
-      cooldownMedical: document.getElementById('cooldown-medical'),
-      cooldownBooster: document.getElementById('cooldown-booster'),
-      profileName: document.getElementById('profile-name'),
-      profileStatus: document.getElementById('profile-status'),
-      profileAvatar: document.getElementById('profile-avatar')
-    };
+    this.elements = {};
   }
   
   init() {
-    // Setup refresh button
-    this.elements.refreshStatsButton.addEventListener('click', () => this.fetchTornStats());
-    
-    return this;
+    try {
+      console.log('Initializing Torn API Client...');
+      
+      // Initialize UI elements
+      this.elements = {
+        refreshStatsButton: document.getElementById('refresh-stats'),
+        pageInfo: document.getElementById('page-info'),
+        statEnergy: document.getElementById('stat-energy'),
+        statNerve: document.getElementById('stat-nerve'),
+        statHappy: document.getElementById('stat-happy'),
+        statLife: document.getElementById('stat-life'),
+        statChain: document.getElementById('stat-chain'),
+        statMoney: document.getElementById('stat-money'),
+        statPoints: document.getElementById('stat-points'),
+        cooldownDrug: document.getElementById('cooldown-drug'),
+        cooldownMedical: document.getElementById('cooldown-medical'),
+        cooldownBooster: document.getElementById('cooldown-booster'),
+        profileName: document.getElementById('profile-name'),
+        profileStatus: document.getElementById('profile-status'),
+        profileAvatar: document.getElementById('profile-avatar')
+      };
+
+      // Check if UI elements are available
+      if (!this.elements.pageInfo) {
+        console.warn('Some API client UI elements not found, they might not be loaded yet');
+      }
+      
+      // Setup refresh button
+      if (this.elements.refreshStatsButton) {
+        this.elements.refreshStatsButton.addEventListener('click', () => this.refreshPlayerStats());
+      }
+      
+      this.initialized = true;
+      console.log('Torn API Client initialized');
+      
+      return this;
+    } catch (error) {
+      console.error('Error initializing API client:', error);
+      return this;
+    }
+  }
+  
+  async refreshPlayerStats() {
+    try {
+      const stats = await this.fetchTornStats();
+      return stats;
+    } catch (error) {
+      console.error('Error refreshing player stats:', error);
+      if (window.Utils) {
+        window.Utils.showNotification('Failed to refresh stats', 'error');
+      }
+      return null;
+    }
   }
   
   async fetchTornStats() {
+    // Make sure ProfileManager is available
+    if (!window.ProfileManager || !window.ProfileManager.getActiveProfile) {
+      console.error('ProfileManager not available');
+      return { error: 'Profile manager not initialized' };
+    }
+    
     const activeProfile = window.ProfileManager.getActiveProfile();
     
     if (!activeProfile || !activeProfile.apiKey) {
+      if (this.elements.pageInfo) {
+        this.elements.pageInfo.textContent = 'API key not configured';
+      }
+      
       this.updateStatsDisplay({
         error: 'API key not configured'
       });
-      return;
+      return { error: 'API key not configured' };
     }
     
     try {
-      this.elements.pageInfo.textContent = 'Fetching Torn stats...';
+      if (this.elements.pageInfo) {
+        this.elements.pageInfo.textContent = 'Fetching Torn stats...';
+      }
+      
+      if (!window.tornAPI || !window.tornAPI.apiRequest) {
+        console.error('Torn API not available');
+        return { error: 'API interface not available' };
+      }
       
       const data = await window.tornAPI.apiRequest('user', { selections: 'basic,cooldowns,bars,icons' });
       
       if (data.error) {
         this.updateStatsDisplay({ error: data.error });
-        return;
+        return data;
       }
       
       this.updateStatsDisplay(data);
-      this.elements.pageInfo.textContent = 'Stats updated';
+      
+      if (this.elements.pageInfo) {
+        this.elements.pageInfo.textContent = 'Stats updated';
+      }
       
       return data;
     } catch (err) {
       console.error('Failed to fetch Torn stats:', err);
-      this.elements.pageInfo.textContent = 'Stats update failed';
+      
+      if (this.elements.pageInfo) {
+        this.elements.pageInfo.textContent = 'Stats update failed';
+      }
       
       this.updateStatsDisplay({
         error: 'Failed to connect to Torn API'
       });
+      
+      return { error: err.message || 'API request failed' };
     }
   }
   
   updateStatsDisplay(data) {
+    // If elements aren't initialized yet, do nothing
+    if (!this.elements.statEnergy) return;
+    
     // Handle API error
     if (data.error) {
       this.elements.statEnergy.textContent = '--';
@@ -79,15 +141,25 @@ class ApiClient {
       this.elements.cooldownMedical.textContent = '--';
       this.elements.cooldownBooster.textContent = '--';
       
-      this.elements.profileStatus.textContent = data.error;
+      if (this.elements.profileStatus) {
+        this.elements.profileStatus.textContent = data.error;
+      }
       return;
     }
     
     // Update profile display
     if (data.name && data.level) {
-      this.elements.profileName.textContent = data.name;
-      this.elements.profileStatus.textContent = `Level ${data.level}`;
-      this.elements.profileAvatar.textContent = data.name.charAt(0).toUpperCase();
+      if (this.elements.profileName) {
+        this.elements.profileName.textContent = data.name;
+      }
+      
+      if (this.elements.profileStatus) {
+        this.elements.profileStatus.textContent = `Level ${data.level}`;
+      }
+      
+      if (this.elements.profileAvatar) {
+        this.elements.profileAvatar.textContent = data.name.charAt(0).toUpperCase();
+      }
     }
     
     // Update stats
@@ -121,24 +193,31 @@ class ApiClient {
     
     // Update cooldowns
     if (data.cooldowns) {
-      this.elements.cooldownDrug.textContent = Utils.formatCooldown(data.cooldowns.drug);
-      this.elements.cooldownMedical.textContent = Utils.formatCooldown(data.cooldowns.medical);
-      this.elements.cooldownBooster.textContent = Utils.formatCooldown(data.cooldowns.booster);
+      this.elements.cooldownDrug.textContent = this.formatCooldown(data.cooldowns.drug);
+      this.elements.cooldownMedical.textContent = this.formatCooldown(data.cooldowns.medical);
+      this.elements.cooldownBooster.textContent = this.formatCooldown(data.cooldowns.booster);
     }
     
     // Check for notifications
-    const activeProfile = window.ProfileManager.getActiveProfile();
+    const activeProfile = window.ProfileManager?.getActiveProfile();
     if (activeProfile && activeProfile.settings && activeProfile.settings.notifications) {
       // Energy full notification
       if (data.energy && data.energy.current >= data.energy.maximum && data.energy.maximum > 0) {
-        Utils.showDesktopNotification('Energy Full', 'Your energy is now full!');
+        window.Utils?.showDesktopNotification('Energy Full', 'Your energy is now full!');
       }
       
       // Nerve full notification
       if (data.nerve && data.nerve.current >= data.nerve.maximum && data.nerve.maximum > 0) {
-        Utils.showDesktopNotification('Nerve Full', 'Your nerve is now full!');
+        window.Utils?.showDesktopNotification('Nerve Full', 'Your nerve is now full!');
       }
     }
+  }
+  
+  formatCooldown(time) {
+    if (!time) return 'Ready';
+    const minutes = Math.floor(time / 60);
+    const seconds = time % 60;
+    return `${minutes}m ${seconds}s`;
   }
   
   startStatsRefresh(interval) {
@@ -150,15 +229,17 @@ class ApiClient {
     // Set new interval (minimum 30 seconds)
     const seconds = Math.max(30, parseInt(interval, 10) || 60);
     this.refreshInterval = setInterval(() => this.fetchTornStats(), seconds * 1000);
+    console.log(`Stats refresh started (every ${seconds} seconds)`);
   }
   
   stopStatsRefresh() {
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
+      console.log('Stats refresh stopped');
     }
   }
 }
 
-// Create global ApiClient instance
+// Create global TornAPI instance
 window.TornAPI = new ApiClient();
