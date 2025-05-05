@@ -3,25 +3,14 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 // Expose validated IPC API to renderer process
 contextBridge.exposeInMainWorld('tornAPI', {
-  // Profile management
-  getProfiles: () => ipcRenderer.invoke('get-profiles'),
-  getActiveProfile: () => ipcRenderer.invoke('get-active-profile'),
+  // Profile management - simplified for single profile
+  getProfile: () => ipcRenderer.invoke('get-profile'),
   saveProfile: (profile) => ipcRenderer.invoke('save-profile', profile),
-  deleteProfile: (profileId) => ipcRenderer.invoke('delete-profile', profileId),
-  setActiveProfile: (profileId) => ipcRenderer.invoke('set-active-profile', profileId),
   
   // Torn.com API proxy
   apiRequest: (endpoint, params) => ipcRenderer.invoke('torn-api-request', endpoint, params),
   
   // Event listeners
-  onProfileChanged: (callback) => {
-    const listener = (_, profileId) => callback(profileId);
-    ipcRenderer.on('profile-changed', listener);
-    return () => {
-      ipcRenderer.removeListener('profile-changed', listener);
-    };
-  },
-  
   onShowUserscripts: (callback) => {
     const listener = () => callback();
     ipcRenderer.on('show-userscripts', listener);
@@ -74,7 +63,7 @@ contextBridge.exposeInMainWorld('tornBrowser', {
   navigate: (url) => {
     const webview = document.getElementById('browser-view');
     if (webview) {
-      if (!/^https?:\/\//i.test(url)) {
+      if (!url.match(/^https?:\/\//i)) {
         url = 'https://' + url;
       }
       webview.src = url;
