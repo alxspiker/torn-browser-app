@@ -1,9 +1,7 @@
-// profile-manager.js - Manages user profiles
+// profile-manager.js - Manages user profile (single-profile only)
 class ProfileManager {
   constructor() {
     this.profile = null;
-    this.allProfiles = [];
-    this.editingProfileId = null;
     this.initialized = false;
     
     // UI elements will be initialized in init()
@@ -17,8 +15,6 @@ class ProfileManager {
       // Find UI elements after they're loaded by UI Manager
       this.elements = {
         // Profile edit elements
-        profilesList: document.getElementById('profiles-list'),
-        createProfileButton: document.getElementById('create-profile'),
         profileNameInput: document.getElementById('profile-edit-name'),
         profileApiKeyInput: document.getElementById('profile-api-key'),
         darkModeCheckbox: document.getElementById('setting-dark-mode'),
@@ -27,8 +23,6 @@ class ProfileManager {
         refreshIntervalInput: document.getElementById('setting-refresh-interval'),
         refreshIntervalGroup: document.getElementById('refresh-interval-group'),
         saveProfileButton: document.getElementById('save-profile'),
-        deleteProfileButton: document.getElementById('delete-profile'),
-        profileTabs: document.querySelectorAll('.tab[data-tab]'),
         
         // Sidebar profile elements
         profileButton: document.getElementById('profile-button'),
@@ -47,8 +41,8 @@ class ProfileManager {
       // Setup event listeners
       this.setupEventListeners();
       
-      // Load active profile
-      await this.loadProfiles();
+      // Load profile
+      await this.loadProfile();
       
       this.initialized = true;
       console.log('Profile Manager initialized');
@@ -75,14 +69,6 @@ class ProfileManager {
       this.elements.saveProfileButton.addEventListener('click', () => this.saveProfile());
     }
     
-    if (this.elements.createProfileButton) {
-      this.elements.createProfileButton.addEventListener('click', () => this.createNewProfile());
-    }
-    
-    if (this.elements.deleteProfileButton) {
-      this.elements.deleteProfileButton.addEventListener('click', () => this.deleteProfile());
-    }
-    
     if (this.elements.autoRefreshCheckbox && this.elements.refreshIntervalGroup) {
       this.elements.autoRefreshCheckbox.addEventListener('change', () => {
         this.elements.refreshIntervalGroup.style.display =
@@ -92,13 +78,6 @@ class ProfileManager {
     
     if (this.elements.saveNotesButton) {
       this.elements.saveNotesButton.addEventListener('click', () => this.saveNotes());
-    }
-    
-    // Setup event listener for profile change from main process
-    if (window.tornAPI && window.tornAPI.onProfileChanged) {
-      window.tornAPI.onProfileChanged((profileId) => {
-        this.loadProfiles();
-      });
     }
     
     // Listen for show profiles event
@@ -111,19 +90,20 @@ class ProfileManager {
     }
   }
   
-  async loadProfiles() {
+  async loadProfile() {
     try {
-      // Load all profiles and active profile
-      this.allProfiles = await window.tornAPI.getProfiles();
-      this.profile = await window.tornAPI.getActiveProfile();
+      // Load profile
+      this.profile = await window.tornAPI.getProfile();
       
-      // Render profiles list
-      this.renderProfiles();
+      // If no profile exists, create a default one
+      if (!this.profile) {
+        this.profile = await this.initializeDefaultProfile();
+      }
       
       // Update profile display
       this.updateProfileDisplay();
       
-      // Load user notes from active profile
+      // Load user notes from profile
       if (this.profile && this.profile.notes && this.elements.userNotes) {
         this.elements.userNotes.value = this.profile.notes;
       }
@@ -163,7 +143,7 @@ class ProfileManager {
       
       return this.profile;
     } catch (err) {
-      console.error('Failed to load profiles:', err);
+      console.error('Failed to load profile:', err);
       await this.initializeDefaultProfile();
       return this.profile;
     }
@@ -191,7 +171,7 @@ class ProfileManager {
     // Create a default profile if none exists
     const defaultProfile = {
       id: 'default',
-      name: 'Default',
+      name: 'Torn Player',
       apiKey: '',
       userscripts: [],
       settings: {
@@ -206,7 +186,6 @@ class ProfileManager {
     try {
       await window.tornAPI.saveProfile(defaultProfile);
       this.profile = defaultProfile;
-      this.allProfiles = [defaultProfile];
       this.updateProfileDisplay();
       
       // Apply dark mode
@@ -222,34 +201,6 @@ class ProfileManager {
       console.error('Failed to create default profile:', error);
       return null;
     }
-  }
-  
-  renderProfiles() {
-    if (!this.elements.profilesList || !this.allProfiles || !this.profile) return;
-    
-    // Clear existing profiles
-    this.elements.profilesList.innerHTML = '';
-    
-    // Add each profile to the list
-    this.allProfiles.forEach(profile => {
-      const li = document.createElement('li');
-      li.className = 'profile-list-item' + (profile.id === this.profile.id ? ' active' : '');
-      li.innerHTML = `
-        <span>${profile.name}</span>
-        <button class="btn btn-secondary" style="padding: 2px 8px; font-size: 0.85em;">Edit</button>
-      `;
-      
-      // Add event listeners
-      li.querySelector('span').addEventListener('click', () => {
-        window.tornAPI.setActiveProfile(profile.id);
-      });
-      
-      li.querySelector('button').addEventListener('click', () => {
-        this.editProfile(profile);
-      });
-      
-      this.elements.profilesList.appendChild(li);
-    });
   }
   
   updateProfileDisplay() {
@@ -295,116 +246,15 @@ class ProfileManager {
     }
   }
   
-  editProfile(profile) {
-    this.editingProfileId = profile.id;
-    
-    if (this.elements.profileNameInput) {
-      this.elements.profileNameInput.value = profile.name;
-    }
-    
-    if (this.elements.profileApiKeyInput) {
-      this.elements.profileApiKeyInput.value = profile.apiKey || '';
-    }
-    
-    // Set profile settings
-    if (profile.settings) {
-      if (this.elements.darkModeCheckbox) {
-        this.elements.darkModeCheckbox.checked = profile.settings.darkMode || false;
-      }
-      
-      if (this.elements.notificationsCheckbox) {
-        this.elements.notificationsCheckbox.checked = profile.settings.notifications !== false;
-      }
-      
-      if (this.elements.autoRefreshCheckbox) {
-        this.elements.autoRefreshCheckbox.checked = profile.settings.autoRefresh || false;
-      }
-      
-      if (this.elements.refreshIntervalInput) {
-        this.elements.refreshIntervalInput.value = profile.settings.refreshInterval || 60;
-      }
-      
-      if (this.elements.refreshIntervalGroup) {
-        this.elements.refreshIntervalGroup.style.display = profile.settings.autoRefresh ? 'block' : 'none';
-      }
-    }
-    
-    // Switch to edit tab and show delete button if multiple profiles exist
-    const editTab = document.querySelector('.tab[data-tab="profile-edit"]');
-    if (editTab && window.UI) {
-      window.UI.switchTab(editTab);
-    }
-    
-    if (this.elements.deleteProfileButton) {
-      this.elements.deleteProfileButton.style.display = this.allProfiles.length > 1 ? 'block' : 'none';
-    }
-  }
-  
-  createNewProfile() {
-    const newId = 'profile_' + Date.now();
-    this.editingProfileId = newId;
-    
-    if (this.elements.profileNameInput) {
-      this.elements.profileNameInput.value = 'New Profile';
-    }
-    
-    if (this.elements.profileApiKeyInput) {
-      this.elements.profileApiKeyInput.value = '';
-    }
-    
-    // Default settings
-    if (this.elements.darkModeCheckbox) {
-      this.elements.darkModeCheckbox.checked = true; // Default to dark mode for new profiles
-    }
-    
-    if (this.elements.notificationsCheckbox) {
-      this.elements.notificationsCheckbox.checked = true;
-    }
-    
-    if (this.elements.autoRefreshCheckbox) {
-      this.elements.autoRefreshCheckbox.checked = false;
-    }
-    
-    if (this.elements.refreshIntervalInput) {
-      this.elements.refreshIntervalInput.value = 60;
-    }
-    
-    if (this.elements.refreshIntervalGroup) {
-      this.elements.refreshIntervalGroup.style.display = 'none';
-    }
-    
-    // Switch to edit tab
-    const editTab = document.querySelector('.tab[data-tab="profile-edit"]');
-    if (editTab && window.UI) {
-      window.UI.switchTab(editTab);
-    }
-    
-    if (this.elements.deleteProfileButton) {
-      this.elements.deleteProfileButton.style.display = 'none';
-    }
-  }
-  
   async saveProfile() {
-    if (!this.editingProfileId) return;
-    
-    // Check if creating new profile or editing existing
-    let profile = this.allProfiles.find(p => p.id === this.editingProfileId);
-    const isNew = !profile;
-    
-    if (isNew) {
-      profile = {
-        id: this.editingProfileId,
-        userscripts: [],
-        notes: ''
-      };
-    }
+    if (!this.profile) return;
     
     // Update profile data
-    profile.name = this.elements.profileNameInput.value.trim() || 'Unnamed Profile';
-    profile.apiKey = this.elements.profileApiKeyInput.value.trim();
+    this.profile.name = this.elements.profileNameInput.value.trim() || 'Torn Player';
+    this.profile.apiKey = this.elements.profileApiKeyInput.value.trim();
     
     // Update settings
-    profile.settings = {
+    this.profile.settings = {
       darkMode: this.elements.darkModeCheckbox.checked,
       notifications: this.elements.notificationsCheckbox.checked,
       autoRefresh: this.elements.autoRefreshCheckbox.checked,
@@ -412,44 +262,18 @@ class ProfileManager {
     };
     
     // Save to store
-    await window.tornAPI.saveProfile(profile);
+    await window.tornAPI.saveProfile(this.profile);
     
-    // Reload profiles
-    await this.loadProfiles();
+    // Reload profile
+    await this.loadProfile();
     
-    // If created new profile, set it as active
-    if (isNew) {
-      await window.tornAPI.setActiveProfile(profile.id);
-    }
-    
-    // Close modal and switch back to list tab
+    // Close modal
     if (window.UI) {
       window.UI.closeModal('profile-modal');
     }
     
-    const listTab = document.querySelector('.tab[data-tab="profile-list"]');
-    if (listTab && window.UI) {
-      window.UI.switchTab(listTab);
-    }
-  }
-  
-  async deleteProfile() {
-    if (!this.editingProfileId) return;
-    
-    if (!confirm(`Are you sure you want to delete the profile "${this.elements.profileNameInput.value}"?`)) {
-      return;
-    }
-    
-    await window.tornAPI.deleteProfile(this.editingProfileId);
-    this.loadProfiles();
-    
-    if (window.UI) {
-      window.UI.closeModal('profile-modal');
-    }
-    
-    const listTab = document.querySelector('.tab[data-tab="profile-list"]');
-    if (listTab && window.UI) {
-      window.UI.switchTab(listTab);
+    if (window.Utils) {
+      window.Utils.showNotification('Profile saved');
     }
   }
   
@@ -457,16 +281,10 @@ class ProfileManager {
     if (!this.profile || !this.elements.userNotes) return;
     
     this.profile.notes = this.elements.userNotes.value;
-    this.saveActiveProfile();
+    this.saveProfile();
     
     if (window.Utils) {
       window.Utils.showNotification('Notes saved');
-    }
-  }
-  
-  saveActiveProfile() {
-    if (this.profile) {
-      window.tornAPI.saveProfile(this.profile);
     }
   }
   
