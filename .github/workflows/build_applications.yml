@@ -24,7 +24,7 @@ jobs:
             artifact_name: app-ios.app
           - platform: electron
             os: windows-latest
-            artifact_path: frontend/electron/dist # Use original electron-builder default
+            artifact_path: frontend/electron/dist # electron-builder default output
             artifact_name: electron-app
       fail-fast: false
 
@@ -78,7 +78,8 @@ jobs:
         if ("${{ matrix.platform }}" -eq "electron") {
           npm install -D @capacitor/electron electron electron-builder
         }
-      shell: pwsh
+      # Let's use default shell for npm install on Windows too, which might be cmd
+      shell: ${{ runner.os == 'Windows' && 'cmd' || 'bash' }}
       working-directory: frontend
 
     - name: Build frontend (web assets)
@@ -96,15 +97,16 @@ jobs:
       run: sudo gem install cocoapods
       if: matrix.platform == 'ios'
 
+    # Use cmd shell specifically for Windows Capacitor steps
     - name: Add Capacitor platform ${{ matrix.platform }}
       run: npx cap add ${{ matrix.platform }}
       working-directory: frontend
-      shell: pwsh # Explicitly use pwsh as in original working version
+      shell: ${{ runner.os == 'Windows' && 'cmd' || 'bash' }}
 
     - name: Sync Capacitor assets
       run: npx cap sync ${{ matrix.platform }}
       working-directory: frontend
-      shell: pwsh # Explicitly use pwsh as in original working version
+      shell: ${{ runner.os == 'Windows' && 'cmd' || 'bash' }}
 
     - name: Build Android APK
       if: matrix.platform == 'android'
@@ -122,9 +124,10 @@ jobs:
 
     - name: Build Electron app
       if: matrix.platform == 'electron'
-      run: npx electron-builder build --win
+      # Run electron-builder directly from within the electron sub-project
+      run: npx electron-builder build --win --config.asarUnpack=node_modules/@capacitor/electron/**/*
       working-directory: frontend/electron # Run from electron subdir
-      shell: pwsh
+      shell: cmd # Try cmd for the build step too on Windows
 
     - name: Upload artifact (${{ matrix.artifact_name }})
       uses: actions/upload-artifact@v4
