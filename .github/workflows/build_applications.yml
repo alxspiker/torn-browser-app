@@ -80,8 +80,8 @@ jobs:
         npm install -D typescript
         if ("${{ matrix.platform }}" -eq "electron") {
           # Ensure these are installed as devDependencies in the main frontend package.json
-          # Using specific known-good versions for Capacitor 4/Electron 28
-          npm install -D @capacitor/electron@^4.1.0 electron@^28.0.0 electron-builder@^24.0.0
+          # Using specific known-good versions for Capacitor 5/Electron 28
+          npm install -D @capacitor/electron@2.5.0 electron@^28.0.0 electron-builder@^24.0.0
         }
       shell: pwsh
       working-directory: frontend
