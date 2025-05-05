@@ -24,8 +24,8 @@ jobs:
             artifact_name: app-ios.app
           - platform: electron
             os: windows-latest
-            artifact_path: frontend/electron/dist_electron # Corrected path for electron-builder output
-            artifact_name: electron-app # Reverted to original simple name
+            artifact_path: frontend/electron/dist_electron
+            artifact_name: electron-app
       fail-fast: false
 
     steps:
@@ -41,7 +41,8 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
-        cache-dependency-path: '**/package-lock.json' # Use wildcard path for better matching
+        # Revert to specific path for caching
+        cache-dependency-path: frontend/package-lock.json
 
     - name: Install Python dependencies
       run: |
@@ -102,7 +103,7 @@ jobs:
       if: matrix.platform == 'ios'
 
     - name: Add Capacitor platform ${{ matrix.platform }}
-      run: npx cap add ${{ matrix.platform }} --npm # Use --npm to avoid prompts
+      run: npx cap add ${{ matrix.platform }} --npm
       working-directory: frontend
 
     - name: Sync Capacitor assets
@@ -126,7 +127,7 @@ jobs:
     - name: Build Electron app
       if: matrix.platform == 'electron'
       run: npm run electron:build
-      working-directory: frontend # Run from frontend dir
+      working-directory: frontend
       shell: pwsh
 
     - name: Upload artifact (${{ matrix.artifact_name }})
