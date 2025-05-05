@@ -2,7 +2,9 @@
 <div id="userscript-modal" class="modal">
   <div class="modal-content" style="width: 90%; max-width: 1200px;">
     <div class="modal-header">
-      <div class="modal-title">Userscript Manager</div>
+      <div class="modal-title">Userscript Manager
+        <button id="check-all-updates-btn" class="btn btn-secondary" style="margin-left: 16px; font-size: 0.9em;">Check all for updates</button>
+      </div>
       <button class="modal-close">&times;</button>
     </div>
     <div class="modal-body" style="padding: 0;">
@@ -17,24 +19,43 @@
           </div>
         </div>
         <div class="editor-main">
-          <div class="editor-toolbar">
-            <div>
-              <input type="text" id="script-name" class="form-input" placeholder="Script name" style="width: 200px;">
-              <input type="text" id="script-match" class="form-input" placeholder="URL match pattern" style="width: 250px; margin-left: 10px;">
-            </div>
-            <div style="margin-top: 8px; display: flex; gap: 10px;">
-              <input type="text" id="script-download-url" class="form-input" placeholder="@downloadURL (optional)" style="width: 320px;">
-              <input type="text" id="script-update-url" class="form-input" placeholder="@updateURL (optional)" style="width: 320px;">
-            </div>
-            <div>
-              <label style="margin-right: 10px;">
-                <input type="checkbox" id="script-enabled"> Enabled
-              </label>
-              <button id="validate-script" class="btn btn-secondary">Validate</button>
+          <div class="editor-tabs" style="display: flex; border-bottom: 1px solid var(--border-color);">
+            <div class="editor-tab active" id="tab-edit" style="padding: 10px 20px; cursor: pointer;">Edit</div>
+            <div class="editor-tab" id="tab-settings" style="padding: 10px 20px; cursor: pointer;">Settings</div>
+          </div>
+          <div class="editor-tab-content" id="tab-content-edit" style="display: block;">
+            <div class="editor-workspace">
+              <textarea id="code-editor"></textarea>
             </div>
           </div>
-          <div class="editor-workspace">
-            <textarea id="code-editor"></textarea>
+          <div class="editor-tab-content" id="tab-content-settings" style="display: none; padding: 20px;">
+            <div style="margin-bottom: 12px;">
+              <label class="form-label">Script Name</label>
+              <input type="text" id="script-name" class="form-input" placeholder="Script name" style="width: 300px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label class="form-label">URL Match Pattern</label>
+              <input type="text" id="script-match" class="form-input" placeholder="URL match pattern" style="width: 300px;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label class="form-label">@downloadURL</label>
+              <input type="text" id="script-download-url" class="form-input" placeholder="@downloadURL (optional)" style="width: 100%;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label class="form-label">@updateURL</label>
+              <input type="text" id="script-update-url" class="form-input" placeholder="@updateURL (optional)" style="width: 100%;">
+            </div>
+            <div style="margin-bottom: 12px;">
+              <label><input type="checkbox" id="script-enabled"> Enabled</label>
+              <label style="margin-left: 20px;"><input type="checkbox" id="script-autoupdate"> Autoupdate</label>
+              <span id="script-update-status" style="margin-left: 20px; color: var(--accent-color); display: none;">
+                <button id="script-update-btn" class="btn btn-secondary" style="margin-left: 8px;">Update to new version</button>
+              </span>
+              <button id="script-check-update-btn" class="btn btn-secondary" style="margin-left: 8px;">Check for update</button>
+            </div>
+            <div style="margin-top: 16px;">
+              <button id="validate-script" class="btn btn-secondary">Validate</button>
+            </div>
           </div>
         </div>
       </div>

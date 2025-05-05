@@ -31,6 +31,14 @@ class UserscriptManager {
         scriptsCount: document.getElementById('scripts-count'),
         codeEditorElement: document.getElementById('code-editor')
       };
+
+      this.ensureCodeEditorInitialized = () => {
+        if (!this.codeEditor) {
+          this.initCodeEditor();
+        } else {
+          this.codeEditor.refresh(); // Refresh the editor if already initialized
+        }
+      };
       
       // Check if all required elements are available
       if (!this.elements.userscriptList || !this.elements.codeEditorElement) {
@@ -45,13 +53,16 @@ class UserscriptManager {
         window.tornAPI.onShowUserscripts(() => {
           if (window.UI) {
             window.UI.openModal('userscript-modal');
-            this.ensureCodeEditorInitialized();
+            this.ensureCodeEditorInitialized(); 
           }
         });
       }
       
       // Pre-load userscripts
       this.loadUserscripts();
+
+      // Check for updates
+      await this.checkAllForUpdates();
       
       this.initialized = true;
       console.log('Userscript Manager initialized');
@@ -138,6 +149,65 @@ class UserscriptManager {
         }
       });
     }
+
+    // Tab switching
+    const tabEdit = document.getElementById('tab-edit');
+    const tabSettings = document.getElementById('tab-settings');
+    const tabContentEdit = document.getElementById('tab-content-edit');
+    const tabContentSettings = document.getElementById('tab-content-settings');
+    if (tabEdit && tabSettings && tabContentEdit && tabContentSettings) {
+      tabEdit.addEventListener('click', () => {
+        tabEdit.classList.add('active');
+        tabSettings.classList.remove('active');
+        tabContentEdit.style.display = 'block';
+        tabContentSettings.style.display = 'none';
+      });
+      tabSettings.addEventListener('click', () => {
+        tabSettings.classList.add('active');
+        tabEdit.classList.remove('active');
+        tabContentSettings.style.display = 'block';
+        tabContentEdit.style.display = 'none';
+      });
+    }
+
+    // Autoupdate toggle
+    const autoupdateCheckbox = document.getElementById('script-autoupdate');
+    if (autoupdateCheckbox) {
+      autoupdateCheckbox.addEventListener('change', () => {
+        if (this.userscripts.length > 0) {
+          this.userscripts[this.selectedScriptIndex].autoupdate = autoupdateCheckbox.checked;
+          this.saveUserscripts();
+        }
+      });
+    }
+
+    // Update button
+    const updateBtn = document.getElementById('script-update-btn');
+    if (updateBtn) {
+      updateBtn.addEventListener('click', async () => {
+        await this.updateScriptToLatest(this.selectedScriptIndex);
+      });
+    }
+
+    // Check for update (single script)
+    const checkUpdateBtn = document.getElementById('script-check-update-btn');
+    if (checkUpdateBtn) {
+      checkUpdateBtn.addEventListener('click', async () => {
+        await this.checkForUpdate(this.selectedScriptIndex);
+        this.renderUserscriptList();
+        this.updateScriptEditor();
+        if (window.Utils) window.Utils.showNotification('Checked for update.');
+      });
+    }
+
+    // Check all for updates (all scripts)
+    const checkAllBtn = document.getElementById('check-all-updates-btn');
+    if (checkAllBtn) {
+      checkAllBtn.addEventListener('click', async () => {
+        await this.checkAllForUpdates();
+        if (window.Utils) window.Utils.showNotification('Checked all scripts for updates.');
+      });
+    }
   }
   
   // Helper to update a userscript meta line in the code editor
@@ -168,71 +238,54 @@ class UserscriptManager {
     this.codeEditor.setValue(code);
   }
 
-  ensureCodeEditorInitialized() {
-    if (!this.codeEditor && this.elements.codeEditorElement) {
-      setTimeout(() => this.initCodeEditor(), 100);
-    }
-  }
-  
   initCodeEditor() {
-    try {
-      if (!this.elements.codeEditorElement) {
-        console.error('Code editor element not found');
-        return;
-      }
-      
-      if (this.codeEditor) {
-        // Editor already initialized
-        return;
-      }
-      
-      // Check if CodeMirror is available
-      if (typeof CodeMirror === 'undefined') {
-        console.error('CodeMirror not loaded');
-        if (window.Utils) {
-          window.Utils.showNotification('CodeMirror editor not loaded', 'error');
-        }
-        return;
-      }
-      
-      this.codeEditor = CodeMirror.fromTextArea(this.elements.codeEditorElement, {
-        mode: 'javascript',
-        theme: 'material',
-        lineNumbers: true,
-        matchBrackets: true,
-        autoCloseBrackets: true,
-        tabSize: 2,
-        indentWithTabs: false,
-        extraKeys: {
-          'Ctrl-Space': 'autocomplete'
-        },
-        gutters: ['CodeMirror-lint-markers'],
-        lint: {
-          esversion: 11,
-          asi: true
-        }
-      });
-      
-      this.codeEditor.on('change', () => {
-        // Auto-save after a delay
-        if (window.autoSaveTimeout) {
-          clearTimeout(window.autoSaveTimeout);
-        }
-        window.autoSaveTimeout = setTimeout(() => {
-          if (this.userscripts.length > 0) {
-            this.userscripts[this.selectedScriptIndex].code = this.codeEditor.getValue();
-            this.saveUserscripts();
-          }
-        }, 2000);
-      });
-      
-      // Update editor with current script
-      this.updateScriptEditor();
-      
-      console.log('CodeMirror editor initialized');
-    } catch (error) {
-      console.error('Error initializing code editor:', error);
+    if (!this.elements.codeEditorElement) {
+      console.error('Code editor element not found');
+      return;
     }
+    if (this.codeEditor) {
+      // Editor already initialized
+      return;
+    }
+    if (typeof CodeMirror === 'undefined') {
+      console.error('CodeMirror not loaded');
+      if (window.Utils) {
+        window.Utils.showNotification('CodeMirror editor not loaded', 'error');
+      }
+      return;
+    }
+    this.codeEditor = CodeMirror.fromTextArea(this.elements.codeEditorElement, {
+      mode: 'javascript',
+      theme: 'material',
+      lineNumbers: true,
+      matchBrackets: true,
+      autoCloseBrackets: true,
+      tabSize: 2,
+      indentWithTabs: false,
+      extraKeys: {
+        'Ctrl-Space': 'autocomplete'
+      },
+      gutters: ['CodeMirror-lint-markers'],
+      lint: {
+        esversion: 11,
+        asi: true
+      }
+    });
+    this.codeEditor.on('change', () => {
+      // Auto-save after a delay
+      if (window.autoSaveTimeout) {
+        clearTimeout(window.autoSaveTimeout);
+      }
+      window.autoSaveTimeout = setTimeout(() => {
+        if (this.userscripts.length > 0) {
+          this.userscripts[this.selectedScriptIndex].code = this.codeEditor.getValue();
+          this.saveUserscripts();
+        }
+      }, 2000);
+    });
+    // Update editor with current script
+    this.updateScriptEditor();
+    console.log('CodeMirror editor initialized');
   }
   
   loadUserscripts() {
@@ -273,6 +326,9 @@ class UserscriptManager {
       match: '*://*.torn.com/*',
       code: `// ==UserScript==
 // @name     New Script
+// @version  1.0.0
+// @downloadURL https://example.org/scripts/new-script.user.js
+// @updateURL https://example.org/scripts/new-script.meta.js
 // @match    *://*.torn.com/*
 // ==/UserScript==
 
@@ -281,7 +337,8 @@ console.log('Hello from new userscript!');
 // This is a sample userscript for Torn.com
 // You can modify this to add custom functionality to the site.
 `,
-      enabled: true
+      enabled: true,
+      autoupdate: false
     };
   }
   
@@ -294,9 +351,14 @@ console.log('Hello from new userscript!');
       const item = document.createElement('div');
       item.className = 'script-list-item' + (index === this.selectedScriptIndex ? ' active' : '');
       
+      let updateIcon = '';
+      if (script.hasUpdate) {
+        updateIcon = '<span title="Update available" style="color: var(--accent-color); font-size: 1.2em; margin-right: 4px;">⬆️</span>';
+      }
+
       item.innerHTML = `
         <div class="script-status-dot ${script.enabled ? 'enabled' : ''}"></div>
-        <span>${script.name}</span>
+        ${updateIcon}<span>${script.name}</span>
       `;
       
       item.addEventListener('click', () => {
@@ -340,10 +402,18 @@ console.log('Hello from new userscript!');
     }
     const downloadUrlInput = document.getElementById('script-download-url');
     const downloadMatch = code.match(/^\/\/\s*@downloadURL\s+(.+)$/m);
-    if (downloadUrlInput) downloadUrlInput.value = downloadMatch ? downloadMatch[1].trim() : '';
+    if (downloadUrlInput) downloadUrlInput.value = downloadMatch ? downloadMatch[1].trim() : (script.downloadUrl || '');
     const updateUrlInput = document.getElementById('script-update-url');
     const updateMatch = code.match(/^\/\/\s*@updateURL\s+(.+)$/m);
-    if (updateUrlInput) updateUrlInput.value = updateMatch ? updateMatch[1].trim() : '';
+    if (updateUrlInput) updateUrlInput.value = updateMatch ? updateMatch[1].trim() : (script.updateUrl || '');
+
+    // Autoupdate checkbox
+    const autoupdateCheckbox = document.getElementById('script-autoupdate');
+    if (autoupdateCheckbox) autoupdateCheckbox.checked = !!script.autoupdate;
+
+    // Update button visibility
+    const updateStatus = document.getElementById('script-update-status');
+    if (updateStatus) updateStatus.style.display = script.hasUpdate ? '' : 'none';
 
     this.codeEditor.setValue(script.code || '');
     this.codeEditor.clearHistory();
@@ -376,6 +446,12 @@ console.log('Hello from new userscript!');
       script.enabled = this.elements.scriptEnabledCheckbox.checked;
     }
     
+    // Save download/update URLs from fields
+    const downloadUrlInput = document.getElementById('script-download-url');
+    if (downloadUrlInput) script.downloadUrl = downloadUrlInput.value.trim();
+    const updateUrlInput = document.getElementById('script-update-url');
+    if (updateUrlInput) script.updateUrl = updateUrlInput.value.trim();
+
     script.code = this.codeEditor.getValue();
     
     this.renderUserscriptList();
@@ -576,6 +652,72 @@ console.log('Hello from new userscript!');
     }
   }
   
+  async checkAllForUpdates() {
+    for (let i = 0; i < this.userscripts.length; i++) {
+      await this.checkForUpdate(i);
+    }
+    this.renderUserscriptList();
+  }
+
+  async checkForUpdate(index) {
+    const script = this.userscripts[index];
+    if (!script || !script.autoupdate || !script.updateUrl) {
+      script.hasUpdate = false;
+      return;
+    }
+    try {
+      const meta = await this.fetchRemoteMeta(script.updateUrl);
+      if (meta && meta.version && this.getScriptVersion(script.code) && this.isVersionNewer(meta.version, this.getScriptVersion(script.code))) {
+        script.hasUpdate = true;
+        script.latestVersion = meta.version;
+        script.latestCode = meta.fullCode;
+      } else {
+        script.hasUpdate = false;
+      }
+    } catch (e) {
+      script.hasUpdate = false;
+    }
+  }
+
+  async updateScriptToLatest(index) {
+    const script = this.userscripts[index];
+    if (!script || !script.hasUpdate || !script.latestCode) return;
+    script.code = script.latestCode;
+    script.hasUpdate = false;
+    script.latestVersion = undefined;
+    script.latestCode = undefined;
+    this.saveUserscripts();
+    this.updateScriptEditor();
+    if (window.Utils) window.Utils.showNotification('Script updated to latest version');
+  }
+
+  async fetchRemoteMeta(url) {
+    const resp = await fetch(url);
+    const text = await resp.text();
+    const versionMatch = text.match(/^\/\/\s*@version\s+(.+)$/m);
+    return {
+      version: versionMatch ? versionMatch[1].trim() : null,
+      fullCode: text
+    };
+  }
+
+  getScriptVersion(code) {
+    const match = code.match(/^\/\/\s*@version\s+(.+)$/m);
+    return match ? match[1].trim() : null;
+  }
+
+  isVersionNewer(remote, local) {
+    // Simple semver compare
+    if (!remote || !local) return false;
+    const r = remote.split('.').map(Number);
+    const l = local.split('.').map(Number);
+    for (let i = 0; i < Math.max(r.length, l.length); i++) {
+      if ((r[i] || 0) > (l[i] || 0)) return true;
+      if ((r[i] || 0) < (l[i] || 0)) return false;
+    }
+    return false;
+  }
+
   getUserscripts() {
     return this.userscripts;
   }
