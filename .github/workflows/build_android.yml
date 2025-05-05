@@ -25,7 +25,8 @@ jobs:
           - platform: electron
             os: windows-latest
             artifact_path: frontend/electron/dist_electron
-            artifact_name: electron-app-${{ matrix.os }}
+            # FIX: Hardcode the OS part since it's defined in this entry
+            artifact_name: electron-app-windows
       fail-fast: false
 
     steps:
