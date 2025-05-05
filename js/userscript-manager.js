@@ -65,16 +65,7 @@ class UserscriptManager {
   
   setupEventListeners() {
     // Skip if UI elements aren't available yet
-    if (!this.elements.userscriptsButton) return;
-    
-    // Userscript modal button
-    this.elements.userscriptsButton.addEventListener('click', () => {
-      if (window.UI) {
-        window.UI.openModal('userscript-modal');
-        this.ensureCodeEditorInitialized();
-      }
-    });
-    
+
     // New script button
     if (this.elements.newScriptButton) {
       this.elements.newScriptButton.addEventListener('click', () => this.createNewScript());
@@ -110,9 +101,26 @@ class UserscriptManager {
       this.elements.importFileInput.addEventListener('change', (e) => this.handleImportedFile(e));
     }
     
+    // Download URL input
+    const downloadUrlInput = document.getElementById('script-download-url');
+    if (downloadUrlInput) {
+      downloadUrlInput.addEventListener('input', () => {
+        this._updateMetaInCode('// @downloadURL', downloadUrlInput.value);
+      });
+    }
+
+    // Update URL input
+    const updateUrlInput = document.getElementById('script-update-url');
+    if (updateUrlInput) {
+      updateUrlInput.addEventListener('input', () => {
+        this._updateMetaInCode('// @updateURL', updateUrlInput.value);
+      });
+    }
+
     // Script name input
     if (this.elements.scriptNameInput) {
       this.elements.scriptNameInput.addEventListener('input', () => {
+        this._updateMetaInCode('// @name', this.elements.scriptNameInput.value);
         if (this.userscripts.length > 0) {
           this.userscripts[this.selectedScriptIndex].name = this.elements.scriptNameInput.value;
           this.renderUserscriptList();
@@ -132,6 +140,34 @@ class UserscriptManager {
     }
   }
   
+  // Helper to update a userscript meta line in the code editor
+  _updateMetaInCode(metaKey, value) {
+    if (!this.codeEditor) return;
+    let code = this.codeEditor.getValue();
+    const metaRegex = new RegExp(`^(${metaKey}\\s+).*`, 'm');
+    if (metaRegex.test(code)) {
+      if (value.trim()) {
+        code = code.replace(metaRegex, `$1${value}`);
+      } else {
+        code = code.replace(metaRegex, '');
+      }
+    } else if (value.trim()) {
+      // Insert after the last meta line
+      const lines = code.split('\n');
+      let lastMetaIdx = lines.findIndex(line => line.startsWith('// ==/UserScript=='));
+      if (lastMetaIdx === -1) lastMetaIdx = lines.findIndex(line => line.startsWith('// ==UserScript=='));
+      if (lastMetaIdx === -1) lastMetaIdx = 0;
+      // Find last meta line before ==/UserScript==
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].startsWith('// @')) lastMetaIdx = i;
+        if (lines[i].startsWith('// ==/UserScript==')) break;
+      }
+      lines.splice(lastMetaIdx + 1, 0, `${metaKey} ${value}`);
+      code = lines.join('\n');
+    }
+    this.codeEditor.setValue(code);
+  }
+
   ensureCodeEditorInitialized() {
     if (!this.codeEditor && this.elements.codeEditorElement) {
       setTimeout(() => this.initCodeEditor(), 100);
@@ -214,7 +250,7 @@ class UserscriptManager {
         this.userscripts = [this.getDefaultUserscript()];
         if (activeProfile) {
           activeProfile.userscripts = this.userscripts;
-          window.ProfileManager.saveActiveProfile();
+          window.ProfileManager.saveProfile();
         }
       }
       
@@ -295,7 +331,20 @@ console.log('Hello from new userscript!');
     if (this.elements.scriptEnabledCheckbox) {
       this.elements.scriptEnabledCheckbox.checked = script.enabled;
     }
-    
+
+    // Sync meta fields from code
+    const code = this.codeEditor.getValue();
+    const nameMatch = code.match(/^\/\/\s*@name\s+(.+)$/m);
+    if (this.elements.scriptNameInput) {
+      this.elements.scriptNameInput.value = nameMatch ? nameMatch[1].trim() : (script.name || '');
+    }
+    const downloadUrlInput = document.getElementById('script-download-url');
+    const downloadMatch = code.match(/^\/\/\s*@downloadURL\s+(.+)$/m);
+    if (downloadUrlInput) downloadUrlInput.value = downloadMatch ? downloadMatch[1].trim() : '';
+    const updateUrlInput = document.getElementById('script-update-url');
+    const updateMatch = code.match(/^\/\/\s*@updateURL\s+(.+)$/m);
+    if (updateUrlInput) updateUrlInput.value = updateMatch ? updateMatch[1].trim() : '';
+
     this.codeEditor.setValue(script.code || '');
     this.codeEditor.clearHistory();
   }
@@ -368,7 +417,7 @@ console.log('Hello from new userscript!');
     if (!activeProfile) return;
     
     activeProfile.userscripts = this.userscripts;
-    window.ProfileManager.saveActiveProfile();
+    window.ProfileManager.saveProfile();
   }
   
   validateCurrentScript() {
@@ -483,11 +532,12 @@ console.log('Hello from new userscript!');
   
   injectUserscripts(url) {
     try {
-      if (!url || !window.tornBrowser || !window.tornBrowser.executeScript) {
-        console.error('Browser API not available for script injection');
+      // Use the correct webview reference
+      const webview = window.BrowserControls && window.BrowserControls.webview;
+      if (!url || !webview || typeof webview.executeJavaScript !== 'function') {
+        console.error('Browser webview not available for script injection');
         return 0;
       }
-      
       let injectedCount = 0;
       const matchingScripts = this.userscripts.filter(script => {
         if (!script.enabled) return false;
@@ -506,7 +556,7 @@ console.log('Hello from new userscript!');
       
       // Inject matching scripts
       matchingScripts.forEach(script => {
-        window.tornBrowser.executeScript(script.code)
+        webview.executeJavaScript(script.code)
           .then(() => {
             injectedCount++;
             if (this.elements.scriptsCount) {

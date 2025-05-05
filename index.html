@@ -25,9 +25,10 @@
     <div class="top-bar">
       <button id="sidebar-toggle" class="control-button" title="Toggle Sidebar">☰</button>
       <div style="margin-left: 15px; font-weight: bold;">Torn Browser</div>
-      <div style="margin-left: auto;">
-        <button id="profile-button" class="control-button" title="User Profile">👤</button>
-        <button id="settings-button" class="control-button" title="Settings">⚙️</button>
+      <div style="margin-left: auto; display: flex; gap: 8px;">
+        <button id="back-button" class="control-button" title="Back">◀</button>
+        <button id="forward-button" class="control-button" title="Forward">▶</button>
+        <button id="reload-button" class="control-button" title="Reload">↻</button>
       </div>
     </div>
     
@@ -39,12 +40,8 @@
       <!-- Main browser area -->
       <div class="main-content">
         <div id="browser-controls">
-          <button id="back-button" class="control-button" title="Back">◀</button>
-          <button id="forward-button" class="control-button" title="Forward">▶</button>
-          <button id="reload-button" class="control-button" title="Reload">↻</button>
           <input id="url-input" class="url-input" type="text" placeholder="Enter URL..." />
           <button id="go-button" class="control-button" title="Go">▶</button>
-          <button id="userscripts-button" class="control-button" title="Userscripts">📜</button>
         </div>
         
         <div class="browser-container">

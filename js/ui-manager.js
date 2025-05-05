@@ -38,13 +38,27 @@ class UIManager {
           }
           
           const html = await response.text();
-          modalsContainer.innerHTML += html;
+          
+          // Remove any existing modal with the same ID
+          const existingModal = document.getElementById(template.id);
+          if (existingModal && existingModal.parentNode) {
+            existingModal.parentNode.removeChild(existingModal);
+            console.log(`Removed duplicate modal #${template.id}`);
+          }
+          
+          // Insert the new modal HTML
+          const tempDiv = document.createElement('div');
+          tempDiv.innerHTML = html;
+          const newModal = tempDiv.firstElementChild;
+          modalsContainer.appendChild(newModal);
           
           // Store modal reference
           this.modals[template.id] = document.getElementById(template.id);
           
           if (!this.modals[template.id]) {
             console.warn(`Modal element #${template.id} not found after loading template`);
+          } else {
+            console.log(`Modal #${template.id} loaded and registered.`);
           }
         } catch (error) {
           console.error(`Error loading modal template ${template.path}:`, error);
@@ -235,39 +249,16 @@ class UIManager {
   }
 
   setupTopBarEventListeners() {
-    // Settings button
-    const settingsButton = document.getElementById('settings-button');
-    if (settingsButton) {
-      settingsButton.addEventListener('click', () => this.openModal('settings-modal'));
-    }
-    
-    // Profile button
-    const profileButton = document.getElementById('profile-button');
-    if (profileButton) {
-      profileButton.addEventListener('click', () => this.openModal('profile-modal'));
-    }
-    
-    // Userscripts button
-    const userscriptsButton = document.getElementById('userscripts-button');
-    if (userscriptsButton) {
-      userscriptsButton.addEventListener('click', () => {
-        this.openModal('userscript-modal');
-        
-        // Initialize CodeMirror if UserscriptManager is available
-        if (window.UserscriptManager && typeof window.UserscriptManager.initCodeEditor === 'function') {
-          setTimeout(() => {
-            window.UserscriptManager.initCodeEditor();
-          }, 100);
-        }
-      });
-    }
+    // All top bar modal buttons have been removed, so this is now a no-op.
   }
   
   openModal(modalId) {
+    console.log(`Attempting to open modal: ${modalId}`);
     if (this.modals[modalId]) {
       this.modals[modalId].classList.add('active');
+      console.log(`Modal '${modalId}' opened.`);
     } else {
-      console.error(`Modal '${modalId}' not found`);
+      console.error(`Modal '${modalId}' not found in UIManager.modals. Registered modals:`, Object.keys(this.modals));
     }
   }
   

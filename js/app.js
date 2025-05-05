@@ -151,27 +151,14 @@ class App {
   }
   
   setupSettingsListeners() {
-    // Get a fresh reference to the settings button
-    const settingsButton = document.getElementById('settings-button');
-    
-    // Settings button
-    if (settingsButton) {
-      settingsButton.addEventListener('click', () => {
-        if (window.UI) {
-          window.UI.openModal('settings-modal');
-        }
-      });
-    } else {
-      console.warn('Settings button not found');
-    }
-    
+    // Remove redundant settings button event listener
     // Save settings button
     if (this.elements.saveSettingsButton) {
       this.elements.saveSettingsButton.addEventListener('click', () => {
         this.saveSettings();
       });
     }
-    
+
     // Listen for events from main process
     if (window.tornAPI && window.tornAPI.onShowSettings) {
       window.tornAPI.onShowSettings(() => {

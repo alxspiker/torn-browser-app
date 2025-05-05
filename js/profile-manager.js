@@ -57,14 +57,7 @@ class ProfileManager {
   
   setupEventListeners() {
     // Only set up listeners for elements that exist
-    if (this.elements.profileButton) {
-      this.elements.profileButton.addEventListener('click', () => {
-        if (window.UI) {
-          window.UI.openModal('profile-modal');
-        }
-      });
-    }
-    
+
     if (this.elements.saveProfileButton) {
       this.elements.saveProfileButton.addEventListener('click', () => this.saveProfile());
     }

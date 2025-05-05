@@ -26,7 +26,6 @@ class BrowserControls {
         backButton: document.getElementById('back-button'),
         forwardButton: document.getElementById('forward-button'),
         reloadButton: document.getElementById('reload-button'),
-        userscriptsButton: document.getElementById('userscripts-button'),
         pageInfo: document.getElementById('page-info'),
         scriptsCount: document.getElementById('scripts-count')
       };
@@ -93,22 +92,6 @@ class BrowserControls {
     if (this.elements.reloadButton) {
       this.elements.reloadButton.addEventListener('click', () => {
         this.reload();
-      });
-    }
-    
-    // Userscripts button
-    if (this.elements.userscriptsButton) {
-      this.elements.userscriptsButton.addEventListener('click', () => {
-        if (window.UI) {
-          window.UI.openModal('userscript-modal');
-          
-          // Initialize CodeMirror if not already initialized
-          if (window.UserscriptManager && typeof window.UserscriptManager.initCodeEditor === 'function') {
-            setTimeout(() => {
-              window.UserscriptManager.initCodeEditor();
-            }, 100);
-          }
-        }
       });
     }
     
@@ -207,12 +190,16 @@ class BrowserControls {
       
       if (settings.rememberLastUrl && activeProfile) {
         activeProfile.lastVisitedUrl = url;
-        window.ProfileManager.saveActiveProfile();
+        window.ProfileManager.saveProfile();
       }
     } catch (error) {
-      console.error('Navigation error:', error);
-      if (this.elements.pageInfo) {
-        this.elements.pageInfo.textContent = 'Navigation error';
+      if (error.message && error.message.includes('ERR_ABORTED')) {
+        console.info('Navigation aborted (likely harmless):', error.message);
+      } else {
+        console.error('Navigation error:', error);
+        if (this.elements.pageInfo) {
+          this.elements.pageInfo.textContent = 'Navigation error';
+        }
       }
     }
   }
