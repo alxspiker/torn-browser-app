@@ -1,0 +1,46 @@
+<!-- Userscript Manager Modal -->
+<div id="userscript-modal" class="modal">
+  <div class="modal-content" style="width: 90%; max-width: 1200px;">
+    <div class="modal-header">
+      <div class="modal-title">Userscript Manager</div>
+      <button class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body" style="padding: 0;">
+      <div id="userscript-editor">
+        <div class="editor-sidebar">
+          <div style="padding: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <h3>Scripts</h3>
+            <button id="new-script" class="btn btn-primary" style="padding: 4px 8px; font-size: 0.85em;">New</button>
+          </div>
+          <div class="script-list" id="userscript-list">
+            <!-- Script items will be added dynamically -->
+          </div>
+        </div>
+        <div class="editor-main">
+          <div class="editor-toolbar">
+            <div>
+              <input type="text" id="script-name" class="form-input" placeholder="Script name" style="width: 200px;">
+              <input type="text" id="script-match" class="form-input" placeholder="URL match pattern" style="width: 250px; margin-left: 10px;">
+            </div>
+            <div>
+              <label style="margin-right: 10px;">
+                <input type="checkbox" id="script-enabled"> Enabled
+              </label>
+              <button id="validate-script" class="btn btn-secondary">Validate</button>
+            </div>
+          </div>
+          <div class="editor-workspace">
+            <textarea id="code-editor"></textarea>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button id="delete-script" class="btn btn-danger" style="margin-right: auto;">Delete Script</button>
+      <button id="export-scripts" class="btn btn-secondary">Export All</button>
+      <button id="import-scripts" class="btn btn-secondary">Import</button>
+      <input type="file" id="import-file" accept="application/json" style="display: none;">
+      <button id="save-script" class="btn btn-success">Save Script</button>
+    </div>
+  </div>
+</div>
