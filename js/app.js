@@ -26,8 +26,7 @@ class App {
       settingsAutoRefreshStatsCheckbox: null,
       settingsEventNotificationsCheckbox: null,
       settingsEnergyNotificationsCheckbox: null,
-      settingsApiCacheInput: null,
-      settingsButton: null
+      settingsApiCacheInput: null
     };
     
     this.initialized = false;
@@ -80,13 +79,19 @@ class App {
         console.error('Userscript Manager not available');
       }
       
-      // 5. Initialize Browser Controls
+      // 5. Initialize Browser Controls - IMPORTANT: Wait for Browser Controls reference
       console.log('Step 5: Initializing Browser Controls...');
       if (window.BrowserControls) {
         window.BrowserControls.init();
         console.log('Browser Controls initialized');
       } else {
         console.error('Browser Controls not available');
+        // Initialize BrowserControls if it's not already done
+        window.BrowserControls = new BrowserControls();
+        if (window.BrowserControls) {
+          window.BrowserControls.init();
+          console.log('Browser Controls initialized after recovery');
+        }
       }
       
       // Initialize settings elements references
@@ -146,13 +151,18 @@ class App {
   }
   
   setupSettingsListeners() {
+    // Get a fresh reference to the settings button
+    const settingsButton = document.getElementById('settings-button');
+    
     // Settings button
-    if (this.elements.settingsButton) {
-      this.elements.settingsButton.addEventListener('click', () => {
+    if (settingsButton) {
+      settingsButton.addEventListener('click', () => {
         if (window.UI) {
           window.UI.openModal('settings-modal');
         }
       });
+    } else {
+      console.warn('Settings button not found');
     }
     
     // Save settings button
@@ -300,7 +310,63 @@ class App {
 // Create and initialize global App instance
 window.App = new App();
 
+// Make sure BrowserControls constructor is globally available
+if (typeof BrowserControls === 'undefined') {
+  // This is a fallback BrowserControls class if it's not defined elsewhere
+  class BrowserControls {
+    constructor() {
+      this.webview = null;
+      this.elements = {};
+      this.defaultUrl = 'https://www.torn.com';
+      this.initialized = false;
+    }
+    
+    init() {
+      try {
+        console.log('Initializing Browser Controls (fallback)...');
+        
+        // Get webview reference
+        this.webview = document.getElementById('browser-view');
+        
+        if (!this.webview) {
+          console.error('Browser webview element not found');
+          return this;
+        }
+        
+        // Basic UI elements
+        this.elements = {
+          urlInput: document.getElementById('url-input'),
+          goButton: document.getElementById('go-button'),
+          backButton: document.getElementById('back-button'),
+          forwardButton: document.getElementById('forward-button'),
+          reloadButton: document.getElementById('reload-button')
+        };
+        
+        this.initialized = true;
+        console.log('Browser controls initialized (fallback)');
+        
+        return this;
+      } catch (error) {
+        console.error('Error initializing browser controls:', error);
+        return this;
+      }
+    }
+    
+    navigateToLastUrl() {
+      try {
+        // Simple fallback navigation
+        this.webview.src = 'https://www.torn.com';
+      } catch (error) {
+        console.error('Error navigating to default URL:', error);
+      }
+    }
+  }
+}
+
 // Start the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', async () => {
-  await window.App.init();
+  // Wait a short time to ensure all scripts are loaded
+  setTimeout(async () => {
+    await window.App.init();
+  }, 100);
 });
