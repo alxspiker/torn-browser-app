@@ -24,7 +24,7 @@ jobs:
             artifact_name: app-ios.app
           - platform: electron
             os: windows-latest
-            artifact_path: frontend/electron/dist # electron-builder default output directory
+            artifact_path: frontend/electron/dist # Use original electron-builder default
             artifact_name: electron-app
       fail-fast: false
 
@@ -40,7 +40,6 @@ jobs:
       uses: actions/setup-node@v3
       with:
         node-version: '18'
-        # Removed cache settings
 
     - name: Install Python dependencies
       run: |
@@ -72,7 +71,6 @@ jobs:
       shell: pwsh
       working-directory: frontend
 
-    # Install dependencies including electron-builder at the top level
     - name: Install Node.js dependencies
       run: |
         npm install
@@ -101,13 +99,12 @@ jobs:
     - name: Add Capacitor platform ${{ matrix.platform }}
       run: npx cap add ${{ matrix.platform }}
       working-directory: frontend
-      # Use default shell for Linux/macOS, pwsh for Windows if needed
-      shell: ${{ runner.os == 'Windows' && 'pwsh' || 'bash' }}
+      shell: pwsh # Explicitly use pwsh as in original working version
 
     - name: Sync Capacitor assets
       run: npx cap sync ${{ matrix.platform }}
       working-directory: frontend
-      shell: ${{ runner.os == 'Windows' && 'pwsh' || 'bash' }}
+      shell: pwsh # Explicitly use pwsh as in original working version
 
     - name: Build Android APK
       if: matrix.platform == 'android'
@@ -123,13 +120,10 @@ jobs:
         xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath build build
       working-directory: frontend/ios
 
-    # Build Electron app directly using electron-builder
     - name: Build Electron app
       if: matrix.platform == 'electron'
-      # Run electron-builder directly, targeting Windows (--win)
-      # npx ensures it uses the locally installed version
       run: npx electron-builder build --win
-      working-directory: frontend/electron # Run from within the generated electron directory
+      working-directory: frontend/electron # Run from electron subdir
       shell: pwsh
 
     - name: Upload artifact (${{ matrix.artifact_name }})
