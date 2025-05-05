@@ -20,7 +20,8 @@ jobs:
             artifact_name: app-android.apk
           - platform: ios
             os: macos-latest
-            artifact_path: frontend/ios/App/build/Build/Products/Debug-iphonesimulator/App.app # Adjusted iOS path slightly for clarity
+            # Using original path, double-check if this is correct for your final build output
+            artifact_path: frontend/ios/build/Build/Products/Debug-iphonesimulator/App.app
             artifact_name: app-ios.app
           - platform: electron
             os: windows-latest
@@ -29,18 +30,18 @@ jobs:
       fail-fast: false
 
     steps:
-    - uses: actions/checkout@v4 # Use v4
+    - uses: actions/checkout@v3 # Reverted to v3
 
     - name: Set up Python
-      uses: actions/setup-python@v5 # Use v5
+      uses: actions/setup-python@v4 # Reverted to v4
       with:
         python-version: '3.10'
 
     - name: Set up Node.js
-      uses: actions/setup-node@v4 # Use v4
+      uses: actions/setup-node@v3 # Reverted to v3
       with:
         node-version: '18'
-        cache: 'npm' # Add npm caching
+        cache: 'npm' # Keep npm caching
         cache-dependency-path: frontend/package-lock.json
 
     - name: Install Python dependencies
@@ -79,6 +80,7 @@ jobs:
         npm install -D typescript
         if ("${{ matrix.platform }}" -eq "electron") {
           # Ensure these are installed as devDependencies in the main frontend package.json
+          # Using specific known-good versions for Capacitor 5/Electron 28
           npm install -D @capacitor/electron@^5.0.0 electron@^28.0.0 electron-builder@^24.0.0
         }
       shell: pwsh
@@ -92,7 +94,7 @@ jobs:
 
     - name: Set up JDK (Android only)
       if: matrix.platform == 'android'
-      uses: actions/setup-java@v4 # Use v4
+      uses: actions/setup-java@v3 # Reverted to v3
       with:
         java-version: '17'
         distribution: 'temurin'
@@ -128,8 +130,8 @@ jobs:
     - name: Build iOS app
       if: matrix.platform == 'ios'
       run: |
-        pod install --project-directory=App --repo-update # Run pod install in the App subdirectory
-        xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath ../build build # Adjusted path
+        pod install --repo-update # Run pod install relative to working-directory
+        xcodebuild -workspace App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath ../build build # Keep relative path for build output
       working-directory: frontend/ios/App # Run xcodebuild from where the workspace is
 
     # *** List contents AFTER sync to verify electron dir ***
@@ -155,7 +157,7 @@ jobs:
       shell: pwsh
 
     - name: Upload artifact (${{ matrix.artifact_name }})
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v4 # Keep v4 as it's the current stable
       with:
         name: ${{ matrix.artifact_name }}
         path: ${{ matrix.artifact_path }}
