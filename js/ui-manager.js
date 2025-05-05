@@ -5,14 +5,21 @@ class UIManager {
     this.tabs = {};
     this.toggleButtons = {};
     this.sidebarVisible = true;
+    this.initialized = false;
   }
 
   async init() {
     try {
+      console.log('Initializing UI Manager...');
+      
       // Load templates
       await this.loadSidebar();
       
       const modalsContainer = document.getElementById('modals-container');
+      if (!modalsContainer) {
+        throw new Error('Modals container not found in DOM');
+      }
+      
       modalsContainer.innerHTML = '';
       
       // Load modals
@@ -23,12 +30,24 @@ class UIManager {
       ];
       
       for (const template of modalTemplates) {
-        const response = await fetch(template.path);
-        const html = await response.text();
-        modalsContainer.innerHTML += html;
-        
-        // Store modal reference
-        this.modals[template.id] = document.getElementById(template.id);
+        try {
+          const response = await fetch(template.path);
+          if (!response.ok) {
+            throw new Error(`Failed to load modal template ${template.path}: ${response.status} ${response.statusText}`);
+          }
+          
+          const html = await response.text();
+          modalsContainer.innerHTML += html;
+          
+          // Store modal reference
+          this.modals[template.id] = document.getElementById(template.id);
+          
+          if (!this.modals[template.id]) {
+            console.warn(`Modal element #${template.id} not found after loading template`);
+          }
+        } catch (error) {
+          console.error(`Error loading modal template ${template.path}:`, error);
+        }
       }
       
       // Set up event listeners for modals
@@ -43,10 +62,13 @@ class UIManager {
       // Set up top bar event listeners
       this.setupTopBarEventListeners();
       
+      this.initialized = true;
+      console.log('UI Manager initialized');
+      
       return this;
     } catch (error) {
       console.error('UIManager initialization error:', error);
-      throw error;
+      return this;
     }
   }
   
@@ -85,11 +107,15 @@ class UIManager {
         try {
           if (window.TornAPI) {
             await window.TornAPI.refreshPlayerStats();
-            Utils.showNotification('Stats refreshed successfully');
+            if (window.Utils) {
+              window.Utils.showNotification('Stats refreshed successfully');
+            }
           }
         } catch (error) {
           console.error('Error refreshing stats:', error);
-          Utils.showNotification('Failed to refresh stats', 'error');
+          if (window.Utils) {
+            window.Utils.showNotification('Failed to refresh stats', 'error');
+          }
         }
       });
     }
@@ -117,11 +143,8 @@ class UIManager {
       }
       
       saveNotes.addEventListener('click', () => {
-        const profile = window.ProfileManager?.getActiveProfile();
-        if (profile) {
-          profile.notes = userNotes.value;
-          window.ProfileManager.saveActiveProfile();
-          Utils.showNotification('Notes saved');
+        if (window.ProfileManager) {
+          window.ProfileManager.saveNotes();
         }
       });
     }
@@ -133,7 +156,9 @@ class UIManager {
     closeButtons.forEach(button => {
       button.addEventListener('click', () => {
         const modal = button.closest('.modal');
-        this.closeModal(modal.id);
+        if (modal) {
+          this.closeModal(modal.id);
+        }
       });
     });
     
@@ -152,18 +177,33 @@ class UIManager {
     
     tabButtons.forEach(tab => {
       tab.addEventListener('click', () => {
-        const tabGroup = tab.closest('.tabs').parentElement;
-        const tabId = tab.getAttribute('data-tab');
-        
-        // Deactivate all tabs in this group
-        tabGroup.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        tabGroup.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-        
-        // Activate the selected tab
-        tab.classList.add('active');
-        tabGroup.querySelector(`#${tabId}`).classList.add('active');
+        this.switchTab(tab);
       });
     });
+  }
+  
+  switchTab(tabElement) {
+    if (!tabElement) return;
+    
+    const tabGroup = tabElement.closest('.tabs');
+    if (!tabGroup) return;
+    
+    const parentContainer = tabGroup.parentElement;
+    const tabId = tabElement.getAttribute('data-tab');
+    
+    // Deactivate all tabs in this group
+    parentContainer.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    parentContainer.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    
+    // Activate the selected tab
+    tabElement.classList.add('active');
+    
+    const tabContent = parentContainer.querySelector(`#${tabId}`);
+    if (tabContent) {
+      tabContent.classList.add('active');
+    } else {
+      console.warn(`Tab content #${tabId} not found`);
+    }
   }
   
   setupSidebarToggle() {
@@ -186,15 +226,26 @@ class UIManager {
     if (settingsButton) {
       settingsButton.addEventListener('click', () => this.openModal('settings-modal'));
     }
+    
     // Profile button
     const profileButton = document.getElementById('profile-button');
     if (profileButton) {
       profileButton.addEventListener('click', () => this.openModal('profile-modal'));
     }
+    
     // Userscripts button
     const userscriptsButton = document.getElementById('userscripts-button');
     if (userscriptsButton) {
-      userscriptsButton.addEventListener('click', () => this.openModal('userscript-modal'));
+      userscriptsButton.addEventListener('click', () => {
+        this.openModal('userscript-modal');
+        
+        // Initialize CodeMirror if UserscriptManager is available
+        if (window.UserscriptManager && typeof window.UserscriptManager.initCodeEditor === 'function') {
+          setTimeout(() => {
+            window.UserscriptManager.initCodeEditor();
+          }, 100);
+        }
+      });
     }
   }
   
@@ -240,6 +291,11 @@ class UIManager {
     document.documentElement.style.fontSize = 
       size === 'small' ? '14px' : 
       size === 'large' ? '18px' : '16px';
+  }
+  
+  // Utility function to check if modals are loaded
+  areModalsLoaded() {
+    return Object.keys(this.modals).length > 0;
   }
 }
 
