@@ -17,18 +17,15 @@ jobs:
           - platform: android
             os: ubuntu-latest
             artifact_path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
-            os_suffix: apk # Or keep specific like 'android' if preferred
-            artifact_name: app-android.${{ matrix.os_suffix }}
+            artifact_name: app-android.apk
           - platform: ios
             os: macos-latest
-            artifact_path: frontend/ios/App/build/Build/Products/Debug-iphonesimulator/App.app
-            os_suffix: app # Or keep specific like 'ios' if preferred
-            artifact_name: app-ios.${{ matrix.os_suffix }}
+            artifact_path: frontend/ios/build/Build/Products/Debug-iphonesimulator/App.app
+            artifact_name: app-ios.app
           - platform: electron
             os: windows-latest
-            artifact_path: frontend/electron/dist_electron
-            os_suffix: windows # Define the suffix here
-            artifact_name: electron-app-${{ matrix.os_suffix }} # Use the defined suffix
+            artifact_path: frontend/electron/dist_electron # Corrected path for electron-builder output
+            artifact_name: electron-app # Reverted to original simple name
       fail-fast: false
 
     steps:
@@ -44,7 +41,7 @@ jobs:
       with:
         node-version: '18'
         cache: 'npm'
-        cache-dependency-path: '**/package-lock.json' # More robust path
+        cache-dependency-path: '**/package-lock.json' # Use wildcard path for better matching
 
     - name: Install Python dependencies
       run: |
@@ -105,7 +102,7 @@ jobs:
       if: matrix.platform == 'ios'
 
     - name: Add Capacitor platform ${{ matrix.platform }}
-      run: npx cap add ${{ matrix.platform }} --npm
+      run: npx cap add ${{ matrix.platform }} --npm # Use --npm to avoid prompts
       working-directory: frontend
 
     - name: Sync Capacitor assets
@@ -123,13 +120,13 @@ jobs:
       if: matrix.platform == 'ios'
       run: |
         pod install --project-directory=App --repo-update
-        xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+        xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath build build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
       working-directory: frontend/ios
 
     - name: Build Electron app
       if: matrix.platform == 'electron'
       run: npm run electron:build
-      working-directory: frontend
+      working-directory: frontend # Run from frontend dir
       shell: pwsh
 
     - name: Upload artifact (${{ matrix.artifact_name }})
