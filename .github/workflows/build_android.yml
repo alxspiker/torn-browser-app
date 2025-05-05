@@ -50,27 +50,26 @@ jobs:
         pip install -r requirements.txt
       working-directory: backend
 
-    # Update package.json to fix dependency issues - Linux version
-    - name: Fix package.json (Linux)
-      if: matrix.platform == 'android'
+    # Update package.json to fix dependency issues - Linux version (Adjusted sed for compatibility)
+    - name: Fix package.json (Linux/macOS)
+      if: runner.os == 'Linux' || runner.os == 'macOS'
       run: |
-        sed -i 's/"@capacitor\/storage": "\^5.0.6"/"@capacitor\/preferences": "\^5.0.6"/g' package.json
-        sed -i 's/import { Storage } from '"'"'@capacitor\/storage'"'"'/import { Preferences } from '"'"'@capacitor\/preferences'"'"'/g' src/js/app.js
-        sed -i 's/Storage\./Preferences\./g' src/js/app.js
-      working-directory: frontend
-
-    # Update package.json to fix dependency issues - macOS version
-    - name: Fix package.json (macOS)
-      if: matrix.platform == 'ios'
-      run: |
-        sed -i '' 's/"@capacitor\/storage": "\^5.0.6"/"@capacitor\/preferences": "\^5.0.6"/g' package.json
-        sed -i '' 's/import { Storage } from '"'"'@capacitor\/storage'"'"'/import { Preferences } from '"'"'@capacitor\/preferences'"'"'/g' src/js/app.js
-        sed -i '' 's/Storage\./Preferences\./g' src/js/app.js
+        # Use different sed args based on OS
+        if [[ "$RUNNER_OS" == "macOS" ]]; then
+          sed -i '' 's/"@capacitor\/storage": "\^5.0.6"/"@capacitor\/preferences": "\^5.0.6"/g' package.json
+          sed -i '' 's/import { Storage } from '"'"'@capacitor\/storage'"'"'/import { Preferences } from '"'"'@capacitor\/preferences'"'"'/g' src/js/app.js
+          sed -i '' 's/Storage\./Preferences\./g' src/js/app.js
+        else # Linux
+          sed -i 's/"@capacitor\/storage": "\^5.0.6"/"@capacitor\/preferences": "\^5.0.6"/g' package.json
+          sed -i 's/import { Storage } from '"'"'@capacitor\/storage'"'"'/import { Preferences } from '"'"'@capacitor\/preferences'"'"'/g' src/js/app.js
+          sed -i 's/Storage\./Preferences\./g' src/js/app.js
+        fi
+      shell: bash
       working-directory: frontend
 
     # Update package.json to fix dependency issues - Windows version
     - name: Fix package.json (Windows)
-      if: matrix.platform == 'electron'
+      if: matrix.platform == 'electron' # Only run on the electron job
       run: |
         (Get-Content package.json) -replace '"@capacitor/storage": "\^5.0.6"', '"@capacitor/preferences": "^5.0.6"' | Set-Content package.json
         (Get-Content src/js/app.js) -replace 'import { Storage } from ''@capacitor/storage''', 'import { Preferences } from ''@capacitor/preferences''' | Set-Content src/js/app.js
@@ -85,10 +84,10 @@ jobs:
         # Install TypeScript as a dev dependency (required by Capacitor)
         npm install -D typescript
         # Install Electron for Windows builds
-        if [[ "${{ matrix.platform }}" == "electron" ]]; then
+        if ("${{ matrix.platform }}" -eq "electron") {
           npm install -D @capacitor/electron electron electron-builder
-        fi
-      shell: bash # Use bash shell even on Windows for the 'if' condition
+        }
+      shell: pwsh # Use PowerShell for consistency on Windows
       working-directory: frontend
 
     # Build the frontend
@@ -116,12 +115,31 @@ jobs:
       run: |
         npx cap add ${{ matrix.platform }}
       working-directory: frontend
+      shell: pwsh # Use PowerShell on Windows
 
     # Sync assets
     - name: Sync Capacitor
       run: |
         npx cap sync ${{ matrix.platform }}
       working-directory: frontend
+      shell: pwsh # Use PowerShell on Windows
+
+    # --- Debug Step 1: List Frontend Directory Contents ---
+    - name: List Frontend Directory Contents (Windows)
+      if: matrix.platform == 'electron'
+      run: |
+        Write-Host "--- Recursive listing of D:\a\torn-browser-app\torn-browser-app\frontend ---"
+        Get-ChildItem -Path frontend -Recurse -ErrorAction SilentlyContinue | Format-Table -AutoSize | Out-String -Width 4096
+        Write-Host "--- End of recursive listing ---"
+      shell: pwsh
+
+    # --- Debug Step 2: Check Electron Directory Exists ---
+    - name: Check Electron Directory Exists (Windows)
+      if: matrix.platform == 'electron'
+      run: |
+        Write-Host "Checking existence of D:\a\torn-browser-app\torn-browser-app\frontend\electron"
+        Test-Path -Path frontend\electron # Check if frontend\electron exists
+      shell: pwsh
 
     # Build for Android
     - name: Build Android APK
@@ -141,23 +159,13 @@ jobs:
         xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath build build
       working-directory: frontend/ios
 
-    # --- Debug Step for Electron ---
-    - name: Check Electron Directory Exists (Windows)
-      if: matrix.platform == 'electron'
-      run: |
-        Write-Host "Checking directory listing for D:\a\torn-browser-app\torn-browser-app\frontend"
-        Get-ChildItem -Path frontend # List contents of frontend directory
-        Write-Host "Checking existence of D:\a\torn-browser-app\torn-browser-app\frontend\electron"
-        Test-Path -Path frontend\electron # Check if frontend\electron exists
-      shell: pwsh
-
     # Build for Electron (Windows)
     - name: Build Electron app
       if: matrix.platform == 'electron'
       run: |
         npm run electron:build
-      working-directory: frontend\electron # Reverting to backslash, as it's native Windows
-      shell: pwsh                        # Explicitly use PowerShell
+      working-directory: frontend\electron # Keep using backslash, will work if directory exists
+      shell: pwsh
 
     # Upload platform-specific artifacts
     - name: Upload artifact
