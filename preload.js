@@ -47,6 +47,57 @@ contextBridge.exposeInMainWorld('tornAPI', {
   }
 });
 
+// Add browser navigation functions
+contextBridge.exposeInMainWorld('tornBrowser', {
+  // Browser controls
+  goBack: () => {
+    const webview = document.getElementById('browser-view');
+    if (webview && webview.canGoBack()) {
+      webview.goBack();
+    }
+  },
+  
+  goForward: () => {
+    const webview = document.getElementById('browser-view');
+    if (webview && webview.canGoForward()) {
+      webview.goForward();
+    }
+  },
+  
+  reload: () => {
+    const webview = document.getElementById('browser-view');
+    if (webview) {
+      webview.reload();
+    }
+  },
+  
+  navigate: (url) => {
+    const webview = document.getElementById('browser-view');
+    if (webview) {
+      if (!/^https?:\/\//i.test(url)) {
+        url = 'https://' + url;
+      }
+      webview.src = url;
+    }
+  },
+  
+  executeScript: (code) => {
+    const webview = document.getElementById('browser-view');
+    if (webview) {
+      return webview.executeJavaScript(code);
+    }
+    return Promise.reject(new Error('Webview not available'));
+  },
+  
+  getURL: () => {
+    const webview = document.getElementById('browser-view');
+    if (webview) {
+      return webview.getURL();
+    }
+    return '';
+  }
+});
+
 // Set up a utility API for the renderer
 contextBridge.exposeInMainWorld('tornUtils', {
   generateUUID: () => {
@@ -102,5 +153,38 @@ contextBridge.exposeInMainWorld('tornUtils', {
     }
     
     return meta;
+  },
+  
+  // Match URL pattern with wildcards
+  matchUrlPattern: (pattern, url) => {
+    if (!pattern || !url) return false;
+    
+    try {
+      // Handle common pattern formats
+      // 1. *://*.example.com/* format
+      // 2. https://example.com/* format
+      // 3. /regex/ format
+      
+      let regex;
+      if (pattern.startsWith('/') && pattern.endsWith('/')) {
+        // It's a regex pattern
+        regex = new RegExp(pattern.slice(1, -1));
+      } else {
+        // Convert glob pattern to regex
+        regex = new RegExp(
+          '^' + 
+          pattern
+            .replace(/\*/g, '.*')
+            .replace(/[[\](){}?+^$\\.|]/g, '\\$&')
+            .replace(/\\\.\*/g, '.*')
+          + '$'
+        );
+      }
+      
+      return regex.test(url);
+    } catch (err) {
+      console.error('Invalid URL pattern:', pattern, err);
+      return false;
+    }
   }
 });
