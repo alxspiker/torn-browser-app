@@ -39,6 +39,9 @@ class UIManager {
       
       // Set up sidebar toggle
       this.setupSidebarToggle();
+
+      // Set up top bar event listeners
+      this.setupTopBarEventListeners();
       
       return this;
     } catch (error) {
@@ -174,6 +177,24 @@ class UIManager {
       });
       
       this.toggleButtons.sidebar = sidebarToggle;
+    }
+  }
+
+  setupTopBarEventListeners() {
+    // Settings button
+    const settingsButton = document.getElementById('settings-button');
+    if (settingsButton) {
+      settingsButton.addEventListener('click', () => this.openModal('settings-modal'));
+    }
+    // Profile button
+    const profileButton = document.getElementById('profile-button');
+    if (profileButton) {
+      profileButton.addEventListener('click', () => this.openModal('profile-modal'));
+    }
+    // Userscripts button
+    const userscriptsButton = document.getElementById('userscripts-button');
+    if (userscriptsButton) {
+      userscriptsButton.addEventListener('click', () => this.openModal('userscript-modal'));
     }
   }
   

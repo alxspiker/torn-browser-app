@@ -2,62 +2,44 @@
 <div id="profile-modal" class="modal">
   <div class="modal-content">
     <div class="modal-header">
-      <div class="modal-title">User Profiles</div>
+      <div class="modal-title">Profile</div>
       <button class="modal-close">&times;</button>
     </div>
     <div class="modal-body">
-      <div class="tabs">
-        <div class="tab active" data-tab="profile-list">Profiles</div>
-        <div class="tab" data-tab="profile-edit">Edit Profile</div>
-      </div>
-      
-      <div class="tab-content active" id="profile-list">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
-          <h3>Available Profiles</h3>
-          <button id="create-profile" class="btn btn-primary">Create New Profile</button>
+      <form id="profile-form">
+        <div class="form-group">
+          <label class="form-label" for="profile-edit-name">Profile Name</label>
+          <input type="text" class="form-input" id="profile-edit-name" required>
         </div>
-        <ul class="profile-list" id="profiles-list">
-          <!-- Profile items will be added dynamically -->
-        </ul>
-      </div>
-      
-      <div class="tab-content" id="profile-edit">
-        <form id="profile-form">
-          <div class="form-group">
-            <label class="form-label" for="profile-edit-name">Profile Name</label>
-            <input type="text" class="form-input" id="profile-edit-name" required>
+        <div class="form-group">
+          <label class="form-label" for="profile-api-key">Torn API Key</label>
+          <input type="text" class="form-input" id="profile-api-key" placeholder="Enter your Torn API key">
+          <small>Your API key is stored locally and only used to fetch data from Torn.</small>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Settings</label>
+          <div style="margin-top: 10px;">
+            <label style="display: flex; align-items: center; margin-bottom: 8px;">
+              <input type="checkbox" id="setting-dark-mode">
+              <span style="margin-left: 8px;">Dark Mode</span>
+            </label>
+            <label style="display: flex; align-items: center; margin-bottom: 8px;">
+              <input type="checkbox" id="setting-notifications">
+              <span style="margin-left: 8px;">Enable Notifications</span>
+            </label>
+            <label style="display: flex; align-items: center; margin-bottom: 8px;">
+              <input type="checkbox" id="setting-auto-refresh">
+              <span style="margin-left: 8px;">Auto-refresh Stats</span>
+            </label>
           </div>
-          <div class="form-group">
-            <label class="form-label" for="profile-api-key">Torn API Key</label>
-            <input type="text" class="form-input" id="profile-api-key" placeholder="Enter your Torn API key">
-            <small>Your API key is stored locally and only used to fetch data from Torn.</small>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Settings</label>
-            <div style="margin-top: 10px;">
-              <label style="display: flex; align-items: center; margin-bottom: 8px;">
-                <input type="checkbox" id="setting-dark-mode">
-                <span style="margin-left: 8px;">Dark Mode</span>
-              </label>
-              <label style="display: flex; align-items: center; margin-bottom: 8px;">
-                <input type="checkbox" id="setting-notifications">
-                <span style="margin-left: 8px;">Enable Notifications</span>
-              </label>
-              <label style="display: flex; align-items: center; margin-bottom: 8px;">
-                <input type="checkbox" id="setting-auto-refresh">
-                <span style="margin-left: 8px;">Auto-refresh Stats</span>
-              </label>
-            </div>
-          </div>
-          <div class="form-group" id="refresh-interval-group" style="display: none;">
-            <label class="form-label" for="setting-refresh-interval">Refresh Interval (seconds)</label>
-            <input type="number" class="form-input" id="setting-refresh-interval" min="30" max="600" value="60">
-          </div>
-        </form>
-      </div>
+        </div>
+        <div class="form-group" id="refresh-interval-group" style="display: none;">
+          <label class="form-label" for="setting-refresh-interval">Refresh Interval (seconds)</label>
+          <input type="number" class="form-input" id="setting-refresh-interval" min="30" max="600" value="60">
+        </div>
+      </form>
     </div>
     <div class="modal-footer">
-      <button id="delete-profile" class="btn btn-danger" style="margin-right: auto; display: none;">Delete Profile</button>
       <button class="btn btn-secondary close-modal">Cancel</button>
       <button id="save-profile" class="btn btn-success">Save Profile</button>
     </div>
