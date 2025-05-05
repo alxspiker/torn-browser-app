@@ -132,10 +132,17 @@ class ProfileManager {
       if (this.profile && this.profile.settings && this.profile.settings.darkMode) {
         if (window.UI) {
           window.UI.toggleDarkMode(true);
+        } else {
+          // Fallback for direct DOM manipulation if UI manager is not available
+          document.body.classList.add('dark-theme');
+          document.body.classList.remove('light-theme');
         }
       } else {
         if (window.UI) {
           window.UI.toggleDarkMode(false);
+        } else {
+          document.body.classList.add('light-theme');
+          document.body.classList.remove('dark-theme');
         }
       }
       
@@ -151,11 +158,32 @@ class ProfileManager {
         window.TornAPI.fetchTornStats();
       }
       
+      // Also update app settings with dark mode preference
+      this.updateAppSettings();
+      
       return this.profile;
     } catch (err) {
       console.error('Failed to load profiles:', err);
       await this.initializeDefaultProfile();
       return this.profile;
+    }
+  }
+  
+  updateAppSettings() {
+    // Make sure dark mode setting is consistent with profile
+    if (!this.profile || !this.profile.settings) return;
+    
+    try {
+      const appSettings = localStorage.getItem('appSettings');
+      if (appSettings) {
+        const settings = JSON.parse(appSettings);
+        if (settings.darkMode !== this.profile.settings.darkMode) {
+          settings.darkMode = this.profile.settings.darkMode;
+          localStorage.setItem('appSettings', JSON.stringify(settings));
+        }
+      }
+    } catch (error) {
+      console.error('Error updating app settings:', error);
     }
   }
   
@@ -167,7 +195,7 @@ class ProfileManager {
       apiKey: '',
       userscripts: [],
       settings: {
-        darkMode: false,
+        darkMode: true, // Set dark mode to true by default
         notifications: true,
         autoRefresh: false,
         refreshInterval: 60
@@ -180,6 +208,15 @@ class ProfileManager {
       this.profile = defaultProfile;
       this.allProfiles = [defaultProfile];
       this.updateProfileDisplay();
+      
+      // Apply dark mode
+      if (window.UI) {
+        window.UI.toggleDarkMode(true);
+      } else {
+        document.body.classList.add('dark-theme');
+        document.body.classList.remove('light-theme');
+      }
+      
       return defaultProfile;
     } catch (error) {
       console.error('Failed to create default profile:', error);
@@ -317,7 +354,7 @@ class ProfileManager {
     
     // Default settings
     if (this.elements.darkModeCheckbox) {
-      this.elements.darkModeCheckbox.checked = false;
+      this.elements.darkModeCheckbox.checked = true; // Default to dark mode for new profiles
     }
     
     if (this.elements.notificationsCheckbox) {
