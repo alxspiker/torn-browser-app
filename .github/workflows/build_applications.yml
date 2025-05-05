@@ -20,29 +20,27 @@ jobs:
             artifact_name: app-android.apk
           - platform: ios
             os: macos-latest
-            artifact_path: frontend/ios/build/Build/Products/Debug-iphonesimulator/App.app
+            artifact_path: frontend/ios/build/Build/Products/Debug-iphonesimulator/App.app # Original working path
             artifact_name: app-ios.app
           - platform: electron
             os: windows-latest
-            artifact_path: frontend/electron/dist_electron # Corrected path for electron-builder output
+            artifact_path: frontend/electron/dist_electron # Corrected path
             artifact_name: electron-app
       fail-fast: false
 
     steps:
-    - uses: actions/checkout@v4 # Keep latest checkout
+    - uses: actions/checkout@v3
 
     - name: Set up Python
-      uses: actions/setup-python@v5 # Keep latest python
+      uses: actions/setup-python@v4
       with:
         python-version: '3.10'
 
-    # Revert setup-node to v3, but keep caching attempt with specific path
+    # Use setup-node v3 and remove caching
     - name: Set up Node.js
       uses: actions/setup-node@v3
       with:
         node-version: '18'
-        cache: 'npm'
-        cache-dependency-path: frontend/package-lock.json
 
     - name: Install Python dependencies
       run: |
@@ -50,16 +48,7 @@ jobs:
         pip install -r requirements.txt
       working-directory: backend
 
-    - name: Fix package.json and app.js (Windows)
-      if: matrix.platform == 'electron'
-      run: |
-        (Get-Content package.json) -replace '"@capacitor/storage": "\^5.0.6"', '"@capacitor/preferences": "^5.0.6"' | Set-Content package.json
-        (Get-Content src/js/app.js) -replace 'import { Storage } from ''@capacitor/storage''', 'import { Preferences } from ''@capacitor/preferences''' | Set-Content src/js/app.js
-        (Get-Content src/js/app.js) -replace 'Storage\.', 'Preferences.' | Set-Content src/js/app.js
-      shell: pwsh
-      working-directory: frontend
-
-    - name: Fix package.json and app.js (Linux/macOS)
+    - name: Fix package.json (Linux/macOS)
       if: runner.os == 'Linux' || runner.os == 'macOS'
       run: |
         if [[ "$RUNNER_OS" == "macOS" ]]; then
@@ -74,17 +63,24 @@ jobs:
       shell: bash
       working-directory: frontend
 
-    - name: Install Node.js dependencies
-      run: npm install
-      working-directory: frontend
-
-    - name: Install TypeScript
-      run: npm install -D typescript
-      working-directory: frontend
-
-    - name: Install Electron dependencies
+    - name: Fix package.json (Windows)
       if: matrix.platform == 'electron'
-      run: npm install -D @capacitor/electron electron electron-builder
+      run: |
+        (Get-Content package.json) -replace '"@capacitor/storage": "\^5.0.6"', '"@capacitor/preferences": "^5.0.6"' | Set-Content package.json
+        (Get-Content src/js/app.js) -replace 'import { Storage } from ''@capacitor/storage''', 'import { Preferences } from ''@capacitor/preferences''' | Set-Content src/js/app.js
+        (Get-Content src/js/app.js) -replace 'Storage\.', 'Preferences.' | Set-Content src/js/app.js
+      shell: pwsh
+      working-directory: frontend
+
+    # Use original dependency install step structure
+    - name: Install Node.js dependencies
+      run: |
+        npm install
+        npm install -D typescript
+        if ("${{ matrix.platform }}" -eq "electron") {
+          npm install -D @capacitor/electron electron electron-builder
+        }
+      shell: pwsh # Original used pwsh here
       working-directory: frontend
 
     - name: Build frontend (web assets)
@@ -92,7 +88,7 @@ jobs:
       working-directory: frontend
 
     - name: Set up JDK (Android only)
-      uses: actions/setup-java@v4 # Keep latest java
+      uses: actions/setup-java@v3 # Use v3 as in original
       with:
         java-version: '17'
         distribution: 'temurin'
@@ -103,35 +99,37 @@ jobs:
       if: matrix.platform == 'ios'
 
     - name: Add Capacitor platform ${{ matrix.platform }}
-      run: npx cap add ${{ matrix.platform }} --npm
+      run: npx cap add ${{ matrix.platform }} # No --npm flag as in original
       working-directory: frontend
+      shell: pwsh # Original used pwsh here
 
     - name: Sync Capacitor assets
       run: npx cap sync ${{ matrix.platform }}
       working-directory: frontend
+      shell: pwsh # Original used pwsh here
 
     - name: Build Android APK
       if: matrix.platform == 'android'
       run: |
         chmod +x ./gradlew
-        ./gradlew assembleDebug --no-daemon
+        ./gradlew assembleDebug # Removed --no-daemon as in original
       working-directory: frontend/android
 
     - name: Build iOS app
       if: matrix.platform == 'ios'
       run: |
         pod install --project-directory=App --repo-update
-        xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath build build CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO
+        xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath build build
       working-directory: frontend/ios
 
     - name: Build Electron app
       if: matrix.platform == 'electron'
       run: npm run electron:build
-      working-directory: frontend
-      shell: pwsh
+      working-directory: frontend # Corrected working directory
+      shell: pwsh # Original used pwsh here
 
     - name: Upload artifact (${{ matrix.artifact_name }})
-      uses: actions/upload-artifact@v4 # Keep latest upload
+      uses: actions/upload-artifact@v4 # Keep v4 for upload
       with:
         name: ${{ matrix.artifact_name }}
         path: ${{ matrix.artifact_path }}
