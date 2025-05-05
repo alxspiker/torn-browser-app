@@ -1,5 +1,5 @@
 // main.js
-const { app, BrowserWindow, ipcMain, Menu, dialog, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, Menu, MenuItem, dialog, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const Store = require('electron-store');
@@ -192,7 +192,7 @@ function createWindow() {
     
     // Add profile items
     profiles.forEach(profile => {
-      profileMenu.append(new Menu.MenuItem({
+      profileMenu.append(new MenuItem({
         label: profile.name,
         type: 'radio',
         checked: profile.id === activeProfile,
