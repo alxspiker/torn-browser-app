@@ -48,7 +48,7 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-      working-directory: backend # Run in backend directory
+      working-directory: backend
 
     # Update package.json to fix dependency issues - Linux version
     - name: Fix package.json (Linux)
@@ -57,7 +57,7 @@ jobs:
         sed -i 's/"@capacitor\/storage": "\^5.0.6"/"@capacitor\/preferences": "\^5.0.6"/g' package.json
         sed -i 's/import { Storage } from '"'"'@capacitor\/storage'"'"'/import { Preferences } from '"'"'@capacitor\/preferences'"'"'/g' src/js/app.js
         sed -i 's/Storage\./Preferences\./g' src/js/app.js
-      working-directory: frontend # Run in frontend directory
+      working-directory: frontend
 
     # Update package.json to fix dependency issues - macOS version
     - name: Fix package.json (macOS)
@@ -66,7 +66,7 @@ jobs:
         sed -i '' 's/"@capacitor\/storage": "\^5.0.6"/"@capacitor\/preferences": "\^5.0.6"/g' package.json
         sed -i '' 's/import { Storage } from '"'"'@capacitor\/storage'"'"'/import { Preferences } from '"'"'@capacitor\/preferences'"'"'/g' src/js/app.js
         sed -i '' 's/Storage\./Preferences\./g' src/js/app.js
-      working-directory: frontend # Run in frontend directory
+      working-directory: frontend
 
     # Update package.json to fix dependency issues - Windows version
     - name: Fix package.json (Windows)
@@ -76,7 +76,7 @@ jobs:
         (Get-Content src/js/app.js) -replace 'import { Storage } from ''@capacitor/storage''', 'import { Preferences } from ''@capacitor/preferences''' | Set-Content src/js/app.js
         (Get-Content src/js/app.js) -replace 'Storage\.', 'Preferences.' | Set-Content src/js/app.js
       shell: pwsh
-      working-directory: frontend # Run in frontend directory
+      working-directory: frontend
 
     # Install Node.js dependencies
     - name: Install Node.js dependencies
@@ -88,7 +88,7 @@ jobs:
         if [[ "${{ matrix.platform }}" == "electron" ]]; then
           npm install -D @capacitor/electron electron electron-builder
         fi
-      shell: bash
+      shell: bash # Use bash shell even on Windows for the 'if' condition
       working-directory: frontend
 
     # Build the frontend
@@ -135,18 +135,18 @@ jobs:
     - name: Build iOS app
       if: matrix.platform == 'ios'
       run: |
-        # Ensure pods are installed (Podfile is usually in App subfolder, pod install finds it)
-        pod install --repo-update
+        # Install pods specifying the project directory containing the Podfile
+        pod install --project-directory=App --repo-update # <-- *** IOS FIX APPLIED HERE ***
         # Build from the ios directory
         xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath build build
-      working-directory: frontend/ios # <-- *** REVERTED FIX APPLIED HERE ***
+      working-directory: frontend/ios # Keep this directory for xcodebuild
 
     # Build for Electron (Windows)
     - name: Build Electron app
       if: matrix.platform == 'electron'
       run: |
         npm run electron:build
-      working-directory: frontend/electron # Keep this directory for electron build
+      working-directory: frontend\electron # <-- *** ELECTRON FIX APPLIED HERE (use backslash) ***
 
     # Upload platform-specific artifacts
     - name: Upload artifact
