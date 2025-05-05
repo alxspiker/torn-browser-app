@@ -9,20 +9,20 @@ const fetch = require('node-fetch');
 const store = new Store({
   name: 'torn-browser-config',
   defaults: {
-    profiles: [{
+    profile: {
       id: 'default',
-      name: 'Default',
+      name: 'Torn Player',
       apiKey: '',
       userscripts: [],
       lastVisitedUrl: 'https://www.torn.com',
       settings: {
-        darkMode: false,
+        darkMode: true,
         notifications: true,
         autoRefresh: false,
         refreshInterval: 60
-      }
-    }],
-    activeProfile: 'default',
+      },
+      notes: ''
+    },
     windowBounds: { width: 1200, height: 800 }
   }
 });
@@ -41,11 +41,9 @@ if (!fs.existsSync(userscriptsPath)) {
   fs.mkdirSync(userscriptsPath, { recursive: true });
 }
 
-// Get the active profile
-function getActiveProfile() {
-  const activeProfileId = store.get('activeProfile');
-  const profiles = store.get('profiles');
-  return profiles.find(p => p.id === activeProfileId) || profiles[0];
+// Get the user profile
+function getProfile() {
+  return store.get('profile');
 }
 
 // Create the browser window
@@ -115,14 +113,12 @@ function createWindow() {
       ]
     },
     {
-      label: 'Profiles',
+      label: 'Account',
       submenu: [
         {
-          label: 'Manage Profiles',
+          label: 'Profile Settings',
           click: () => win.webContents.send('show-profiles')
-        },
-        { type: 'separator' }
-        // Profile list will be dynamically populated
+        }
       ]
     },
     {
@@ -134,7 +130,7 @@ function createWindow() {
           click: () => win.webContents.send('show-userscripts')
         },
         {
-          label: 'Settings',
+          label: 'App Settings',
           accelerator: 'CmdOrCtrl+,',
           click: () => win.webContents.send('show-settings')
         },
@@ -161,7 +157,7 @@ function createWindow() {
             dialog.showMessageBox(win, {
               type: 'info',
               title: 'About Torn Browser',
-              message: 'Torn Browser v1.1.0',
+              message: 'Torn Browser v1.2.0',
               detail: 'A specialized browser for Torn.com with userscript capabilities.\n\nCreated by Alex Spiker'
             });
           }
@@ -178,38 +174,7 @@ function createWindow() {
     }
   ]);
 
-  // Update profile submenu
-  function updateProfileMenu() {
-    const profiles = store.get('profiles');
-    const activeProfile = store.get('activeProfile');
-    
-    const profileMenu = menu.items.find(item => item.label === 'Profiles').submenu;
-    
-    // Remove old profile items (keeping the first two items)
-    while (profileMenu.items.length > 2) {
-      profileMenu.items.pop();
-    }
-    
-    // Add profile items
-    profiles.forEach(profile => {
-      profileMenu.append(new MenuItem({
-        label: profile.name,
-        type: 'radio',
-        checked: profile.id === activeProfile,
-        click: () => {
-          store.set('activeProfile', profile.id);
-          win.webContents.send('profile-changed', profile.id);
-          updateProfileMenu();
-        }
-      }));
-    });
-    
-    Menu.setApplicationMenu(menu);
-  }
-  
-  updateProfileMenu();
   Menu.setApplicationMenu(menu);
-
   return win;
 }
 
@@ -218,58 +183,19 @@ app.whenReady().then(() => {
   const mainWindow = createWindow();
   
   // Handle IPC messages from renderer process
-  ipcMain.handle('get-profiles', () => {
-    return store.get('profiles');
-  });
-  
-  ipcMain.handle('get-active-profile', () => {
-    return getActiveProfile();
+  ipcMain.handle('get-profile', () => {
+    return getProfile();
   });
   
   ipcMain.handle('save-profile', (event, profile) => {
-    const profiles = store.get('profiles');
-    const index = profiles.findIndex(p => p.id === profile.id);
-    
-    if (index >= 0) {
-      profiles[index] = profile;
-    } else {
-      profiles.push(profile);
-    }
-    
-    store.set('profiles', profiles);
-    return true;
-  });
-  
-  ipcMain.handle('delete-profile', (event, profileId) => {
-    let profiles = store.get('profiles');
-    
-    // Don't delete if it's the last profile
-    if (profiles.length <= 1) {
-      return false;
-    }
-    
-    profiles = profiles.filter(p => p.id !== profileId);
-    store.set('profiles', profiles);
-    
-    // If active profile was deleted, switch to first available
-    if (store.get('activeProfile') === profileId) {
-      store.set('activeProfile', profiles[0].id);
-      mainWindow.webContents.send('profile-changed', profiles[0].id);
-    }
-    
-    return true;
-  });
-  
-  ipcMain.handle('set-active-profile', (event, profileId) => {
-    store.set('activeProfile', profileId);
-    mainWindow.webContents.send('profile-changed', profileId);
+    store.set('profile', profile);
     return true;
   });
   
   // API proxy to handle caching and authentication
   ipcMain.handle('torn-api-request', async (event, endpoint, params = {}) => {
     try {
-      const profile = getActiveProfile();
+      const profile = getProfile();
       const apiKey = profile.apiKey;
       
       if (!apiKey) {
@@ -286,7 +212,10 @@ app.whenReady().then(() => {
       // Check cache
       const cacheKey = url;
       const now = Date.now();
-      if (apiCache.data[cacheKey] && (now - apiCache.timestamp[cacheKey]) < apiCache.maxAge) {
+      const cacheDuration = profile.settings?.apiCacheDuration || 5; // Default 5 minutes
+      const maxAge = cacheDuration * 60 * 1000;
+      
+      if (apiCache.data[cacheKey] && (now - apiCache.timestamp[cacheKey]) < maxAge) {
         return apiCache.data[cacheKey];
       }
       
