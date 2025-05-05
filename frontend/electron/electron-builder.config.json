@@ -4,6 +4,7 @@
     "buildResources": "resources"
   },
   "files": [
+    "dist/**/*",
     "assets/**/*",
     "build/**/*",
     "capacitor.config.*",
