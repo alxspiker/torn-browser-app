@@ -24,7 +24,7 @@ jobs:
             artifact_name: app-ios.app
           - platform: electron
             os: windows-latest
-            artifact_path: frontend/electron/dist # Reverted to electron-builder default output dir
+            artifact_path: frontend/electron/dist
             artifact_name: electron-app
       fail-fast: false
 
@@ -78,7 +78,7 @@ jobs:
         if ("${{ matrix.platform }}" -eq "electron") {
           npm install -D @capacitor/electron electron electron-builder
         }
-      shell: pwsh # Revert to pwsh as per original working file
+      shell: pwsh
       working-directory: frontend
 
     - name: Build frontend (web assets)
@@ -99,13 +99,14 @@ jobs:
     - name: Add Capacitor platform ${{ matrix.platform }}
       run: npx cap add ${{ matrix.platform }}
       working-directory: frontend
-      shell: pwsh # Revert to pwsh as per original working file
+      shell: pwsh
 
     - name: Sync Capacitor assets
       run: npx cap sync ${{ matrix.platform }}
       working-directory: frontend
-      shell: pwsh # Revert to pwsh as per original working file
+      shell: pwsh
 
+    # --- Platform Builds ---
     - name: Build Android APK
       if: matrix.platform == 'android'
       run: |
@@ -120,11 +121,19 @@ jobs:
         xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath build build
       working-directory: frontend/ios
 
+    # *** ADDED DEBUG STEP ***
+    - name: List Frontend Directory Contents (Electron only)
+      if: matrix.platform == 'electron'
+      run: Get-ChildItem -Path . -Recurse -ErrorAction SilentlyContinue | Format-Table -AutoSize | Out-String -Width 4096
+      working-directory: frontend # Check contents of frontend dir
+      shell: pwsh
+
     - name: Build Electron app
       if: matrix.platform == 'electron'
       run: npx electron-builder build --win --config.asarUnpack=node_modules/@capacitor/electron/**/*
-      working-directory: frontend/electron # Run from within the electron subdirectory
-      shell: pwsh # Keep pwsh as it worked for other steps on Windows
+      # Changed working directory back to frontend/electron - let's see if the list command shows it exists now
+      working-directory: frontend/electron
+      shell: pwsh
 
     - name: Upload artifact (${{ matrix.artifact_name }})
       uses: actions/upload-artifact@v4
