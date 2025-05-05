@@ -136,17 +136,18 @@ jobs:
       if: matrix.platform == 'ios'
       run: |
         # Install pods specifying the project directory containing the Podfile
-        pod install --project-directory=App --repo-update # <-- *** IOS FIX APPLIED HERE ***
+        pod install --project-directory=App --repo-update
         # Build from the ios directory
         xcodebuild -workspace App/App.xcworkspace -scheme App -configuration Debug -sdk iphonesimulator -derivedDataPath build build
-      working-directory: frontend/ios # Keep this directory for xcodebuild
+      working-directory: frontend/ios
 
     # Build for Electron (Windows)
     - name: Build Electron app
       if: matrix.platform == 'electron'
       run: |
+        cd frontend\electron
         npm run electron:build
-      working-directory: frontend\electron # <-- *** ELECTRON FIX APPLIED HERE (use backslash) ***
+      shell: cmd # <-- *** ELECTRON FIX APPLIED HERE ***
 
     # Upload platform-specific artifacts
     - name: Upload artifact
