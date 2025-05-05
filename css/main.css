@@ -20,6 +20,22 @@
   --transition-speed: 0.3s;
 }
 
+/* Default is now dark theme, and .light-theme overrides it */
+/* Dark theme is the application default */
+.dark-theme, body {
+  --primary-bg: #1a2636;
+  --primary-fg: #ffffff;
+  --secondary-bg: #2a3a4a;
+  --hover-bg: #405070;
+  --accent-color: #5d98ff;
+  --border-color: #3a4a5a;
+  --text-color: #ffffff;
+  --text-secondary: #b0bec5;
+  --panel-bg: #283644;
+  --input-bg: #374757;
+  --input-text: #e0e0e0;
+}
+
 .light-theme {
   --primary-bg: #f5f7fa;
   --primary-fg: #202020;
@@ -45,7 +61,7 @@ body {
   font-family: 'Segoe UI', Arial, sans-serif; 
   background: var(--primary-bg);
   color: var(--text-color);
-  transition: background var(--transition-speed);
+  transition: background var(--transition-speed), color var(--transition-speed);
 }
 
 /* Main layout structure */
@@ -110,7 +126,7 @@ body {
   padding: 6px 12px;
   font-size: 1.1em;
   cursor: pointer;
-  transition: background 0.2s;
+  transition: background 0.2s, color 0.2s;
 }
 
 .control-button:hover {
@@ -130,7 +146,7 @@ body {
   background: var(--input-bg);
   color: var(--input-text);
   outline: none;
-  transition: border-color 0.2s;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
 }
 
 .url-input:focus {
@@ -161,4 +177,13 @@ body {
   border-top: 1px solid var(--border-color);
   font-size: 0.85em;
   color: var(--text-secondary);
+}
+
+/* Add transitions for all elements */
+.modal, .modal-content, .tab, .tab-content,
+.sidebar, .main-content, .browser-controls,
+input, select, textarea, button {
+  transition: background-color var(--transition-speed), 
+              color var(--transition-speed), 
+              border-color var(--transition-speed);
 }
