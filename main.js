@@ -158,7 +158,7 @@ function createWindow() {
               type: 'info',
               title: 'About Torn Browser',
               message: 'Torn Browser v1.2.0',
-              detail: 'A specialized browser for Torn.com with userscript capabilities.\n\nCreated by Alex Spiker'
+              detail: 'A specialized browser for Torn.com with userscript capabilities.\n\nCreated by Alx Spiker'
             });
           }
         },
