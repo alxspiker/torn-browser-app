@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#1a2636">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <title>Torn Browser</title>
   
   <!-- CodeMirror - for code editing with syntax highlighting -->
@@ -18,17 +21,24 @@
   <link rel="stylesheet" href="css/modals.css">
   <link rel="stylesheet" href="css/forms.css">
   <link rel="stylesheet" href="css/userscripts.css">
+  
+  <!-- Preload critical resources -->
+  <link rel="preload" href="templates/sidebar.html" as="fetch" crossorigin>
+  <link rel="preload" href="templates/modals/profile-modal.html" as="fetch" crossorigin>
 </head>
 <body>
   <div class="app-container">
     <!-- Top navigation bar -->
     <div class="top-bar">
-      <button id="sidebar-toggle" class="control-button" title="Toggle Sidebar">☰</button>
-      <div style="margin-left: 15px; font-weight: bold;">Torn Browser</div>
+      <button id="sidebar-toggle" class="control-button" title="Toggle Sidebar" aria-label="Toggle Sidebar">☰</button>
+      <div style="margin-left: 15px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
+        <img src="assets/icon.png" alt="Torn Browser" style="width: 24px; height: 24px; display: none;" class="app-logo">
+        <span>Torn Browser</span>
+      </div>
       <div style="margin-left: auto; display: flex; gap: 8px;">
-        <button id="back-button" class="control-button" title="Back">◀</button>
-        <button id="forward-button" class="control-button" title="Forward">▶</button>
-        <button id="reload-button" class="control-button" title="Reload">↻</button>
+        <button id="back-button" class="control-button" title="Back" aria-label="Go Back">◀</button>
+        <button id="forward-button" class="control-button" title="Forward" aria-label="Go Forward">▶</button>
+        <button id="reload-button" class="control-button" title="Reload" aria-label="Reload Page">↻</button>
       </div>
     </div>
     
@@ -36,12 +46,13 @@
     <div class="content-wrapper">
       <!-- Sidebar with Torn features will be loaded here -->
       <div id="sidebar-container"></div>
+      <div class="sidebar-backdrop"></div>
       
       <!-- Main browser area -->
       <div class="main-content">
         <div id="browser-controls">
-          <input id="url-input" class="url-input" type="text" placeholder="Enter URL..." />
-          <button id="go-button" class="control-button" title="Go">▶</button>
+          <input id="url-input" class="url-input" type="text" placeholder="Enter URL..." aria-label="URL input" />
+          <button id="go-button" class="control-button" title="Go" aria-label="Go to URL">▶</button>
         </div>
         
         <div class="browser-container">
@@ -58,6 +69,9 @@
   
   <!-- Modal containers will be dynamically loaded -->
   <div id="modals-container"></div>
+  
+  <!-- Notification container -->
+  <div id="notification-container"></div>
   
   <!-- External Scripts -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/codemirror.min.js"></script>
@@ -78,5 +92,18 @@
   <script src="js/api-client.js"></script>
   <script src="js/browser-controls.js"></script>
   <script src="js/app.js"></script>
+  
+  <!-- Service Worker Registration for PWA support -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./service-worker.js').then(reg => {
+          console.log('Service worker registered');
+        }).catch(err => {
+          console.error('Service worker registration failed:', err);
+        });
+      });
+    }
+  </script>
 </body>
 </html>
