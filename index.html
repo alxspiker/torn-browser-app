@@ -7,7 +7,12 @@
   <meta name="theme-color" content="#1a2636">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="A specialized browser for Torn.com with enhanced features and userscript support">
   <title>Torn Browser</title>
+  
+  <!-- PWA support -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="assets/icons/icon-192x192.png">
   
   <!-- CodeMirror - for code editing with syntax highlighting -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.14/codemirror.min.css">
@@ -32,7 +37,7 @@
     <div class="top-bar">
       <button id="sidebar-toggle" class="control-button" title="Toggle Sidebar" aria-label="Toggle Sidebar">☰</button>
       <div style="margin-left: 15px; font-weight: bold; display: flex; align-items: center; gap: 8px;">
-        <img src="assets/icon.png" alt="Torn Browser" style="width: 24px; height: 24px; display: none;" class="app-logo">
+        <img src="assets/icons/icon-72x72.png" alt="Torn Browser" style="width: 24px; height: 24px;" class="app-logo">
         <span>Torn Browser</span>
       </div>
       <div style="margin-left: auto; display: flex; gap: 8px;">
@@ -104,6 +109,25 @@
         });
       });
     }
+    
+    // Handle URL parameters for app shortcuts
+    window.addEventListener('DOMContentLoaded', () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const action = urlParams.get('action');
+      
+      if (action) {
+        setTimeout(() => {
+          switch(action) {
+            case 'userscripts':
+              if (window.UI) window.UI.openModal('userscript-modal');
+              break;
+            case 'settings':
+              if (window.UI) window.UI.openModal('settings-modal');
+              break;
+          }
+        }, 1000); // Delay to ensure UI is loaded
+      }
+    });
   </script>
 </body>
 </html>
