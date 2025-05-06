@@ -202,32 +202,51 @@ app.whenReady().then(() => {
         return { error: 'API key not set. Please add your API key in the profile settings.' };
       }
       
+      // Create a new params object without our custom properties
+      const apiParams = { ...params };
+      
+      // Extract bypass cache flag if present
+      const bypassCache = apiParams._bypassCache === true;
+      delete apiParams._bypassCache;
+      
+      // Remove timestamp if present (used by frontend to force cache bypass)
+      delete apiParams.timestamp;
+      
       const queryParams = new URLSearchParams({
         key: apiKey,
-        ...params
+        ...apiParams
       });
       
       const url = `https://api.torn.com/${endpoint}?${queryParams}`;
       
-      // Check cache
-      const cacheKey = url;
-      const now = Date.now();
-      const cacheDuration = profile.settings?.apiCacheDuration || 5; // Default 5 minutes
-      const maxAge = cacheDuration * 60 * 1000;
-      
-      if (apiCache.data[cacheKey] && (now - apiCache.timestamp[cacheKey]) < maxAge) {
-        return apiCache.data[cacheKey];
+      // Check cache only if not bypassing
+      if (!bypassCache) {
+        const cacheKey = url;
+        const now = Date.now();
+        const cacheDuration = profile.settings?.apiCacheDuration || 5; // Default 5 minutes
+        const maxAge = cacheDuration * 60 * 1000;
+        
+        if (apiCache.data[cacheKey] && (now - apiCache.timestamp[cacheKey]) < maxAge) {
+          console.log(`[API] Using cached data for ${endpoint}`);
+          return apiCache.data[cacheKey];
+        }
+      } else {
+        console.log(`[API] Bypassing cache for ${endpoint}`);
       }
       
+      // Make the actual API request
+      console.log(`[API] Fetching fresh data for ${endpoint}`);
       const response = await fetch(url);
       const data = await response.json();
       
-      // Cache the result
+      // Cache the result (even for bypass requests, for future use)
+      const cacheKey = url;
       apiCache.data[cacheKey] = data;
-      apiCache.timestamp[cacheKey] = now;
+      apiCache.timestamp[cacheKey] = Date.now();
       
       return data;
     } catch (err) {
+      console.error(`[API] Error: ${err.message}`);
       return { error: err.message };
     }
   });
