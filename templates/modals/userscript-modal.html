@@ -2,70 +2,164 @@
 <div id="userscript-modal" class="modal">
   <div class="modal-content" style="width: 90%; max-width: 1200px;">
     <div class="modal-header">
-      <div class="modal-title">Userscript Manager
-        <button id="check-all-updates-btn" class="btn btn-secondary" style="margin-left: 16px; font-size: 0.9em;">Check all for updates</button>
+      <div class="modal-title">
+        Userscript Manager
+        <button id="check-all-updates-btn" class="btn btn-secondary" style="margin-left: 16px; font-size: 0.9em;">
+          <span style="margin-right: 5px;">⟳</span> Check all for updates
+        </button>
       </div>
       <button class="modal-close">&times;</button>
     </div>
     <div class="modal-body" style="padding: 0;">
       <div id="userscript-editor">
         <div class="editor-sidebar">
-          <div style="padding: 10px; display: flex; justify-content: space-between; align-items: center;">
-            <h3>Scripts</h3>
-            <button id="new-script" class="btn btn-primary" style="padding: 4px 8px; font-size: 0.85em;">New</button>
+          <div style="padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color);">
+            <h3 style="margin: 0;">Scripts</h3>
+            <button id="new-script" class="btn btn-primary" style="padding: 6px 12px; font-size: 0.85em;">
+              <span style="margin-right: 4px;">+</span> New
+            </button>
           </div>
           <div class="script-list" id="userscript-list">
             <!-- Script items will be added dynamically -->
           </div>
         </div>
         <div class="editor-main">
-          <div class="editor-tabs" style="display: flex; border-bottom: 1px solid var(--border-color);">
-            <div class="editor-tab active" id="tab-edit" style="padding: 10px 20px; cursor: pointer;">Edit</div>
-            <div class="editor-tab" id="tab-settings" style="padding: 10px 20px; cursor: pointer;">Settings</div>
+          <div class="editor-tabs">
+            <div class="editor-tab active" id="tab-edit">Edit Script</div>
+            <div class="editor-tab" id="tab-settings">Settings</div>
           </div>
           <div class="editor-tab-content" id="tab-content-edit" style="display: block;">
             <div class="editor-workspace">
               <textarea id="code-editor"></textarea>
             </div>
           </div>
-          <div class="editor-tab-content" id="tab-content-settings" style="display: none; padding: 20px;">
-            <div style="margin-bottom: 12px;">
-              <label class="form-label">Script Name</label>
-              <input type="text" id="script-name" class="form-input" placeholder="Script name" style="width: 300px;">
+          <div class="editor-tab-content" id="tab-content-settings" style="display: none;">
+            <div class="settings-grid">
+              <div class="settings-section">
+                <h3>Script Information</h3>
+                <div class="form-group">
+                  <label class="form-label" for="script-name">Script Name</label>
+                  <input type="text" id="script-name" class="form-input" placeholder="Script name">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="script-match">URL Match Pattern</label>
+                  <input type="text" id="script-match" class="form-input" placeholder="URL match pattern">
+                  <div class="form-hint">
+                    Example: *://*.torn.com/* for all Torn pages
+                  </div>
+                </div>
+                <div class="form-group">
+                  <div class="checkbox-wrapper">
+                    <label style="font-weight: bold;">
+                      <input type="checkbox" id="script-enabled"> Enabled
+                    </label>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="settings-section">
+                <h3>Update Settings</h3>
+                <div class="form-group">
+                  <label class="form-label" for="script-download-url">Download URL</label>
+                  <input type="text" id="script-download-url" class="form-input" placeholder="URL to download the script">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="script-update-url">Update URL</label>
+                  <input type="text" id="script-update-url" class="form-input" placeholder="URL to check for updates">
+                </div>
+                <div class="form-group">
+                  <div class="checkbox-wrapper">
+                    <label style="font-weight: bold;">
+                      <input type="checkbox" id="script-autoupdate"> Auto-update when available
+                    </label>
+                  </div>
+                </div>
+                <div id="script-update-status" style="display: none; margin-top: 15px; padding: 10px; background-color: rgba(46, 204, 113, 0.15); border-left: 3px solid #2ecc71; border-radius: 4px;">
+                  <span style="color: #2ecc71; margin-right: 10px;">⟳</span> Update available!
+                  <button id="script-update-btn" class="btn btn-primary" style="margin-left: 10px;">Update to new version</button>
+                </div>
+                <div style="margin-top: 15px;">
+                  <button id="script-check-update-btn" class="btn btn-secondary">
+                    <span style="margin-right: 5px;">⟳</span> Check for update
+                  </button>
+                </div>
+              </div>
             </div>
-            <div style="margin-bottom: 12px;">
-              <label class="form-label">URL Match Pattern</label>
-              <input type="text" id="script-match" class="form-input" placeholder="URL match pattern" style="width: 300px;">
-            </div>
-            <div style="margin-bottom: 12px;">
-              <label class="form-label">@downloadURL</label>
-              <input type="text" id="script-download-url" class="form-input" placeholder="@downloadURL (optional)" style="width: 100%;">
-            </div>
-            <div style="margin-bottom: 12px;">
-              <label class="form-label">@updateURL</label>
-              <input type="text" id="script-update-url" class="form-input" placeholder="@updateURL (optional)" style="width: 100%;">
-            </div>
-            <div style="margin-bottom: 12px;">
-              <label><input type="checkbox" id="script-enabled"> Enabled</label>
-              <label style="margin-left: 20px;"><input type="checkbox" id="script-autoupdate"> Autoupdate</label>
-              <span id="script-update-status" style="margin-left: 20px; color: var(--accent-color); display: none;">
-                <button id="script-update-btn" class="btn btn-secondary" style="margin-left: 8px;">Update to new version</button>
-              </span>
-              <button id="script-check-update-btn" class="btn btn-secondary" style="margin-left: 8px;">Check for update</button>
-            </div>
-            <div style="margin-top: 16px;">
-              <button id="validate-script" class="btn btn-secondary">Validate</button>
+            
+            <div class="form-actions" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+              <button id="validate-script" class="btn btn-secondary">
+                <span style="margin-right: 5px;">✓</span> Validate Script
+              </button>
             </div>
           </div>
         </div>
       </div>
     </div>
     <div class="modal-footer">
-      <button id="delete-script" class="btn btn-danger" style="margin-right: auto;">Delete Script</button>
-      <button id="export-scripts" class="btn btn-secondary">Export All</button>
-      <button id="import-scripts" class="btn btn-secondary">Import</button>
+      <button id="delete-script" class="btn btn-danger" style="margin-right: auto;">
+        <span style="margin-right: 5px;">🗑️</span> Delete Script
+      </button>
+      <button id="export-scripts" class="btn btn-secondary">
+        <span style="margin-right: 5px;">⬇️</span> Export All
+      </button>
+      <button id="import-scripts" class="btn btn-secondary">
+        <span style="margin-right: 5px;">⬆️</span> Import
+      </button>
       <input type="file" id="import-file" accept="application/json" style="display: none;">
-      <button id="save-script" class="btn btn-success">Save Script</button>
+      <button id="save-script" class="btn btn-success">
+        <span style="margin-right: 5px;">💾</span> Save Script
+      </button>
     </div>
   </div>
 </div>
+
+<style>
+  /* Additional styles for the userscript modal */
+  .settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    padding: 24px;
+  }
+  
+  .settings-section {
+    padding: 18px;
+    background-color: var(--secondary-bg);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+  }
+  
+  .settings-section h3 {
+    margin-top: 0;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--accent-color);
+  }
+  
+  .form-group {
+    margin-bottom: 16px;
+  }
+  
+  .form-hint {
+    font-size: 0.85em;
+    color: var(--text-secondary);
+    margin-top: 4px;
+  }
+  
+  .checkbox-wrapper {
+    margin-top: 8px;
+  }
+  
+  /* Responsive layout */
+  @media (max-width: 992px) {
+    .settings-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+  
+  .form-actions {
+    display: flex;
+    gap: 10px;
+  }
+</style>
