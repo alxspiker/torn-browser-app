@@ -12,8 +12,6 @@ class UserscriptManager {
   
   async init() {
     try {
-      console.log('Initializing Userscript Manager...');
-      
       // Initialize UI elements
       this.elements = {
         userscriptList: document.getElementById('userscript-list'),
@@ -65,7 +63,6 @@ class UserscriptManager {
       await this.checkAllForUpdates();
       
       this.initialized = true;
-      console.log('Userscript Manager initialized');
       
       return this;
     } catch (error) {
@@ -285,7 +282,6 @@ class UserscriptManager {
     });
     // Update editor with current script
     this.updateScriptEditor();
-    console.log('CodeMirror editor initialized');
   }
   
   loadUserscripts() {
@@ -644,7 +640,6 @@ console.log('Hello from new userscript!');
           });
       });
       
-      console.log(`Injected ${matchingScripts.length} userscripts for URL: ${url}`);
       return matchingScripts.length;
     } catch (err) {
       console.error('Error injecting userscripts:', err);

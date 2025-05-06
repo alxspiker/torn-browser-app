@@ -34,68 +34,46 @@ class App {
   
   async init() {
     try {
-      console.log('Initializing Torn Browser App...');
-      
       // Load app settings
       this.loadSettings();
       
       // Initialize components in the correct order
       
       // 1. First, initialize UI Manager - this loads templates and modals
-      console.log('Step 1: Initializing UI Manager...');
       if (!window.UI) {
-        console.error('UI Manager not available');
         return;
       }
       
       await window.UI.init();
-      console.log('UI Manager initialized');
       
       // 2. Initialize Profile Manager
-      console.log('Step 2: Initializing Profile Manager...');
       if (!window.ProfileManager) {
-        console.error('Profile Manager not available');
         return;
       }
       
       await window.ProfileManager.init();
-      console.log('Profile Manager initialized');
       
       // 3. Initialize API Client
-      console.log('Step 3: Initializing API Client...');
       if (window.TornAPI) {
         window.TornAPI.init();
-        console.log('API Client initialized');
-      } else {
-        console.error('API Client not available');
       }
       
       // 4. Initialize Userscript Manager
-      console.log('Step 4: Initializing Userscript Manager...');
       if (window.UserscriptManager) {
         await window.UserscriptManager.init();
-        console.log('Userscript Manager initialized');
-      } else {
-        console.error('Userscript Manager not available');
       }
       
       // 5. Initialize Browser Controls - IMPORTANT: Wait for Browser Controls reference
-      console.log('Step 5: Initializing Browser Controls...');
       if (window.BrowserControls) {
         window.BrowserControls.init();
-        console.log('Browser Controls initialized');
       } else {
-        console.error('Browser Controls not available');
-        // Initialize BrowserControls if it's not already done
         window.BrowserControls = new BrowserControls();
         if (window.BrowserControls) {
           window.BrowserControls.init();
-          console.log('Browser Controls initialized after recovery');
         }
       }
       
       // Initialize settings elements references
-      console.log('Step 6: Initializing settings UI...');
       this.initSettingsElements();
       
       // Setup app settings event listeners
@@ -106,7 +84,6 @@ class App {
       
       // Navigate to last URL or default page
       if (window.BrowserControls) {
-        console.log('Navigating to initial page...');
         window.BrowserControls.navigateToLastUrl();
       }
       
@@ -114,7 +91,6 @@ class App {
       this.requestNotificationPermission();
       
       this.initialized = true;
-      console.log('Torn Browser App initialized successfully');
     } catch (error) {
       console.error('Error initializing app:', error);
     }
@@ -310,13 +286,10 @@ if (typeof BrowserControls === 'undefined') {
     
     init() {
       try {
-        console.log('Initializing Browser Controls (fallback)...');
-        
         // Get webview reference
         this.webview = document.getElementById('browser-view');
         
         if (!this.webview) {
-          console.error('Browser webview element not found');
           return this;
         }
         
@@ -330,7 +303,6 @@ if (typeof BrowserControls === 'undefined') {
         };
         
         this.initialized = true;
-        console.log('Browser controls initialized (fallback)');
         
         return this;
       } catch (error) {

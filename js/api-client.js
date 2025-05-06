@@ -10,8 +10,6 @@ class ApiClient {
   
   init() {
     try {
-      console.log('Initializing Torn API Client...');
-      
       // Initialize UI elements
       this.elements = {
         refreshStatsButton: document.getElementById('refresh-stats'),
@@ -36,13 +34,7 @@ class ApiClient {
         console.warn('Some API client UI elements not found, they might not be loaded yet');
       }
       
-      // Setup refresh button
-      if (this.elements.refreshStatsButton) {
-        this.elements.refreshStatsButton.addEventListener('click', () => this.refreshPlayerStats());
-      }
-      
       this.initialized = true;
-      console.log('Torn API Client initialized');
       
       return this;
     } catch (error) {
@@ -94,7 +86,7 @@ class ApiClient {
         return { error: 'API interface not available' };
       }
       
-      const data = await window.tornAPI.apiRequest('user', { selections: 'basic,cooldowns,bars,icons' });
+      const data = await window.tornAPI.apiRequest('user', { selections: 'money,icons,basic,cooldowns,bars' });
       
       if (data.error) {
         this.updateStatsDisplay({ error: data.error });
@@ -158,7 +150,12 @@ class ApiClient {
       }
       
       if (this.elements.profileAvatar) {
-        this.elements.profileAvatar.textContent = data.name.charAt(0).toUpperCase();
+        // Only set text if there is no avatar image set by the profile manager
+        const profile = window.ProfileManager?.getActiveProfile();
+        if (!profile || !profile.avatar) {
+          this.elements.profileAvatar.textContent = data.name.charAt(0).toUpperCase();
+        }
+        // Otherwise, leave the avatar image as set by the profile manager
       }
     }
     
@@ -183,8 +180,8 @@ class ApiClient {
       this.elements.statChain.textContent = data.chain.current;
     }
     
-    if (data.money) {
-      this.elements.statMoney.textContent = '$' + data.money.toLocaleString();
+    if (data.money_onhand !== undefined) {
+      this.elements.statMoney.textContent = '$' + data.money_onhand.toLocaleString();
     }
     
     if (data.points !== undefined) {
@@ -211,6 +208,11 @@ class ApiClient {
         window.Utils?.showDesktopNotification('Nerve Full', 'Your nerve is now full!');
       }
     }
+
+    // Update sidebar stats as well
+    if (window.UI && window.UI.updateSidebarStats) {
+      window.UI.updateSidebarStats(data);
+    }
   }
   
   formatCooldown(time) {
@@ -229,14 +231,12 @@ class ApiClient {
     // Set new interval (minimum 30 seconds)
     const seconds = Math.max(30, parseInt(interval, 10) || 60);
     this.refreshInterval = setInterval(() => this.fetchTornStats(), seconds * 1000);
-    console.log(`Stats refresh started (every ${seconds} seconds)`);
   }
   
   stopStatsRefresh() {
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
-      console.log('Stats refresh stopped');
     }
   }
 }

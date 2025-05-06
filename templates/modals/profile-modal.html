@@ -8,6 +8,7 @@
     <div class="modal-body">
       <form id="profile-form">
         <div class="form-group">
+          <img id="profile-modal-avatar" style="width:48px;height:48px;border-radius:50%;display:none;margin-bottom:10px;">
           <label class="form-label" for="profile-edit-name">Character Name</label>
           <input type="text" class="form-input" id="profile-edit-name" required>
         </div>
@@ -15,6 +16,28 @@
           <label class="form-label" for="profile-api-key">Torn API Key</label>
           <input type="text" class="form-input" id="profile-api-key" placeholder="Enter your Torn API key">
           <small>Your API key is stored locally and only used to fetch data from Torn.</small>
+          <div style="margin-top: 10px;">
+            <label class="form-label" for="api-key-access">API Key Access Level</label>
+            <select id="api-key-access" class="form-input" style="width: 220px;">
+              <option value="public">Public Only</option>
+              <option value="minimal">Minimal Access</option>
+              <option value="limited">Limited Access</option>
+              <option value="full">Full Access</option>
+              <option value="custom">Custom...</option>
+            </select>
+            <select id="api-key-custom-scopes" class="form-input" style="width: 100%; margin-top: 8px; display: none;" multiple size="6">
+              <option value="user:basic">User: Basic</option>
+              <option value="user:bars">User: Bars</option>
+              <option value="user:cooldowns">User: Cooldowns</option>
+              <option value="user:notifications">User: Notifications</option>
+              <option value="faction:basic">Faction: Basic</option>
+              <option value="faction:contributors">Faction: Contributors</option>
+              <option value="torn:bank">Torn: Bank</option>
+              <!-- Add more scopes as needed -->
+            </select>
+            <button id="create-api-key-btn" class="btn btn-secondary" style="margin-top: 10px;">Create API Key</button>
+            <button id="view-api-keys-btn" class="btn btn-secondary" style="margin-top: 10px; margin-left: 10px;">View Keys</button>
+          </div>
         </div>
         <div class="form-group">
           <label class="form-label">Settings</label>

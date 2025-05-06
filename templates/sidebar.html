@@ -2,11 +2,11 @@
 <div id="sidebar" class="sidebar">
   <div class="profile-section">
     <div class="profile-header">
-      <div class="profile-avatar" id="profile-avatar">T</div>
-      <div>
-        <div class="profile-name" id="profile-name">Default User</div>
-        <small id="profile-status">Level 1</small>
+      <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+        <div id="profile-avatar"></div>
+        <span id="profile-name" style="font-weight: bold;"></span>
       </div>
+      <div id="profile-status" style="font-size: 0.95em; color: var(--text-secondary); cursor: pointer;"></div>
     </div>
     <button id="refresh-stats" class="btn btn-secondary" style="width:100%;">Refresh Stats</button>
   </div>

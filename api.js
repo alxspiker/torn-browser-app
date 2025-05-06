@@ -11,7 +11,7 @@ class TornAPI {
    */
   constructor(apiKey, options = {}) {
     this.apiKey = apiKey;
-    this.baseUrl = 'https://api.torn.com/';
+    this.baseUrl = 'https://api.torn.com/v2'; // Updated to v2 API
     this.cache = {};
     this.cacheTimestamps = {};
     this.cacheLifetime = (options.cacheLifetime || 5) * 60 * 1000; // Default 5 minutes
@@ -42,9 +42,9 @@ class TornAPI {
   }
 
   /**
-   * Make a request to the Torn API
-   * @param {string} endpoint - API endpoint (user, faction, company, etc.)
-   * @param {Object} params - API parameters
+   * Make a request to the Torn API (v2)
+   * @param {string} endpoint - API endpoint (e.g., 'user/bounties', 'user/1234/bounties')
+   * @param {Object} params - API query parameters
    * @param {boolean} bypassCache - Whether to bypass the cache
    * @return {Promise<Object>} - API response
    */
@@ -53,12 +53,12 @@ class TornAPI {
       return { error: 'API key not set' };
     }
 
-    // Build request URL
+    // Build request URL for v2
     const queryParams = new URLSearchParams({
       key: this.apiKey,
       ...params
     });
-    const url = `${this.baseUrl}${endpoint}?${queryParams}`;
+    const url = `${this.baseUrl}/${endpoint}?${queryParams}`;
     const cacheKey = url;
 
     // Check cache if not bypassing
@@ -70,19 +70,13 @@ class TornAPI {
     }
 
     try {
-      // Make API request
       const response = await fetch(url);
       const data = await response.json();
-
-      // Handle API errors
       if (data.error) {
         return { error: data.error };
       }
-
-      // Update cache
       this.cache[cacheKey] = data;
       this.cacheTimestamps[cacheKey] = Date.now();
-
       return data;
     } catch (err) {
       return { error: err.message };

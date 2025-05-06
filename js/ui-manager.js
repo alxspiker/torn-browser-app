@@ -11,11 +11,14 @@ class UIManager {
 
   async init() {
     try {
-      console.log('Initializing UI Manager...');
-      
       // Load templates
       await this.loadSidebar();
       
+      // After loading sidebar, update stats if available
+      if (window.TornAPI && window.TornAPI.lastStats && window.UI && window.UI.updateSidebarStats) {
+        window.UI.updateSidebarStats(window.TornAPI.lastStats);
+      }
+
       const modalsContainer = document.getElementById('modals-container');
       if (!modalsContainer) {
         throw new Error('Modals container not found in DOM');
@@ -43,7 +46,6 @@ class UIManager {
           const existingModal = document.getElementById(template.id);
           if (existingModal && existingModal.parentNode) {
             existingModal.parentNode.removeChild(existingModal);
-            console.log(`Removed duplicate modal #${template.id}`);
           }
           
           // Insert the new modal HTML
@@ -57,8 +59,6 @@ class UIManager {
           
           if (!this.modals[template.id]) {
             console.warn(`Modal element #${template.id} not found after loading template`);
-          } else {
-            console.log(`Modal #${template.id} loaded and registered.`);
           }
         } catch (error) {
           console.error(`Error loading modal template ${template.path}:`, error);
@@ -91,7 +91,6 @@ class UIManager {
       }
       
       this.initialized = true;
-      console.log('UI Manager initialized');
       
       return this;
     } catch (error) {
@@ -134,10 +133,15 @@ class UIManager {
       refreshStats.addEventListener('click', async () => {
         try {
           if (window.TornAPI) {
+            if (typeof window.TornAPI.init === 'function') {
+              window.TornAPI.init(); // Ensure elements are bound
+            }
             await window.TornAPI.refreshPlayerStats();
             if (window.Utils) {
               window.Utils.showNotification('Stats refreshed successfully');
             }
+          } else {
+            console.error('TornAPI is not available on window');
           }
         } catch (error) {
           console.error('Error refreshing stats:', error);
@@ -253,10 +257,8 @@ class UIManager {
   }
   
   openModal(modalId) {
-    console.log(`Attempting to open modal: ${modalId}`);
     if (this.modals[modalId]) {
       this.modals[modalId].classList.add('active');
-      console.log(`Modal '${modalId}' opened.`);
     } else {
       console.error(`Modal '${modalId}' not found in UIManager.modals. Registered modals:`, Object.keys(this.modals));
     }
@@ -283,7 +285,6 @@ class UIManager {
   }
   
   toggleDarkMode(isDark) {
-    console.log(`Toggling dark mode: ${isDark ? 'ON' : 'OFF'}`);
     this.darkModeEnabled = isDark;
     
     if (isDark) {
@@ -320,6 +321,26 @@ class UIManager {
   
   isDarkModeEnabled() {
     return this.darkModeEnabled;
+  }
+
+  updateSidebarStats(data) {
+    // Update stat fields in the sidebar if present
+    const set = (id, value) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = value;
+    };
+    if (data.energy) set('stat-energy', `${data.energy.current} / ${data.energy.maximum}`);
+    if (data.nerve) set('stat-nerve', `${data.nerve.current} / ${data.nerve.maximum}`);
+    if (data.happy) set('stat-happy', `${data.happy.current} / ${data.happy.maximum}`);
+    if (data.life) set('stat-life', `${data.life.current} / ${data.life.maximum}`);
+    if (data.chain && data.chain.current !== undefined) set('stat-chain', data.chain.current);
+    if (data.money_onhand !== undefined) set('stat-money', '$' + data.money_onhand.toLocaleString());
+    if (data.points !== undefined) set('stat-points', data.points.toLocaleString());
+    if (data.cooldowns) {
+      set('cooldown-drug', window.TornAPI?.formatCooldown ? window.TornAPI.formatCooldown(data.cooldowns.drug) : data.cooldowns.drug);
+      set('cooldown-medical', window.TornAPI?.formatCooldown ? window.TornAPI.formatCooldown(data.cooldowns.medical) : data.cooldowns.medical);
+      set('cooldown-booster', window.TornAPI?.formatCooldown ? window.TornAPI.formatCooldown(data.cooldowns.booster) : data.cooldowns.booster);
+    }
   }
 }
 

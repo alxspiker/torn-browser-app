@@ -3,14 +3,38 @@ class ProfileManager {
   constructor() {
     this.profile = null;
     this.initialized = false;
+    this.lastWebviewUrl = null; // Store previous webview URL for API key automation
     
     // UI elements will be initialized in init()
     this.elements = {};
   }
+
+  // Call this before navigating to the API key creation page
+  storeCurrentWebviewUrl() {
+    const webview = window.BrowserControls && window.BrowserControls.webview;
+    if (webview) {
+      this.lastWebviewUrl = webview.getURL();
+    }
+  }
+
+  // Call this after detecting the API key in the webview
+  async handleDetectedApiKey(apiKey) {
+    if (!apiKey) return;
+    if (!this.profile) this.profile = {};
+    this.profile.apiKey = apiKey;
+    await this.saveProfile(true);
+    this.updateProfileDisplay();
+    if (window.Utils) window.Utils.showNotification('API key detected and saved!');
+    // Return to previous page if available
+    const webview = window.BrowserControls && window.BrowserControls.webview;
+    if (webview && this.lastWebviewUrl) {
+      webview.src = this.lastWebviewUrl;
+      this.lastWebviewUrl = null;
+    }
+  }
   
   async init() {
     try {
-      console.log('Initializing Profile Manager...');
       
       // Find UI elements after they're loaded by UI Manager
       this.elements = {
@@ -45,7 +69,6 @@ class ProfileManager {
       await this.loadProfile();
       
       this.initialized = true;
-      console.log('Profile Manager initialized');
       
       return this;
     } catch (error) {
@@ -78,6 +101,70 @@ class ProfileManager {
       window.tornAPI.onShowProfiles(() => {
         if (window.UI) {
           window.UI.openModal('profile-modal');
+        }
+      });
+    }
+
+    // Make API key status clickable if API key is missing
+    const profileStatus = this.elements.profileStatus;
+    if (profileStatus) {
+      profileStatus.addEventListener('click', () => {
+        if (!this.profile || !this.profile.apiKey) {
+          if (window.UI) window.UI.openModal('profile-modal');
+        }
+      });
+    }
+    // API key creation UI logic
+    const accessSelect = document.getElementById('api-key-access');
+    const customScopes = document.getElementById('api-key-custom-scopes');
+    if (accessSelect && customScopes) {
+      accessSelect.addEventListener('change', () => {
+        if (accessSelect.value === 'custom') {
+          customScopes.style.display = '';
+        } else {
+          customScopes.style.display = 'none';
+        }
+      });
+    }
+    const createApiKeyBtn = document.getElementById('create-api-key-btn');
+    if (createApiKeyBtn && accessSelect && customScopes) {
+      createApiKeyBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.storeCurrentWebviewUrl();
+        let url = 'https://www.torn.com/preferences.php#tab=api?step=addNewKey&title=Torn%20Browser%20Key';
+        if (accessSelect.value === 'public') url += '&type=1';
+        else if (accessSelect.value === 'minimal') url += '&type=2';
+        else if (accessSelect.value === 'limited') url += '&type=3';
+        else if (accessSelect.value === 'full') url += '&type=4';
+        else if (accessSelect.value === 'custom') {
+          // Collect all selected custom scopes
+          const selected = Array.from(customScopes.selectedOptions).map(opt => opt.value);
+          if (selected.length > 0) {
+            // Group by user, faction, torn
+            const user = selected.filter(s => s.startsWith('user:')).map(s => s.replace('user:', ''));
+            const faction = selected.filter(s => s.startsWith('faction:')).map(s => s.replace('faction:', ''));
+            const torn = selected.filter(s => s.startsWith('torn:')).map(s => s.replace('torn:', ''));
+            if (user.length) url += `&user=${user.join(',')}`;
+            if (faction.length) url += `&faction=${faction.join(',')}`;
+            if (torn.length) url += `&torn=${torn.join(',')}`;
+          }
+        }
+        // Navigate the webview instead of opening a new window
+        const webview = window.BrowserControls && window.BrowserControls.webview;
+        if (webview) {
+          webview.src = url;
+        }
+      });
+    }
+
+    const viewApiKeysBtn = document.getElementById('view-api-keys-btn');
+    if (viewApiKeysBtn) {
+      viewApiKeysBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (window.UI) window.UI.closeModal('profile-modal');
+        const webview = window.BrowserControls && window.BrowserControls.webview;
+        if (webview) {
+          webview.src = 'https://www.torn.com/preferences.php#tab=api';
         }
       });
     }
@@ -198,14 +285,26 @@ class ProfileManager {
   
   updateProfileDisplay() {
     if (!this.profile) return;
-    
     // Update avatar and name in sidebar
     if (this.elements.profileAvatar && this.elements.profileName && this.elements.profileStatus) {
-      this.elements.profileAvatar.textContent = this.profile.name.charAt(0).toUpperCase();
+      // Always clear the avatar element first
+      this.elements.profileAvatar.innerHTML = '';
+      if (this.profile.avatar) {
+        this.elements.profileAvatar.innerHTML = `<img src="${this.profile.avatar}" alt="avatar" style="width:32px;height:32px;border-radius:50%;vertical-align:middle;">`;
+      } else {
+        this.elements.profileAvatar.textContent = this.profile.name.charAt(0).toUpperCase();
+      }
       this.elements.profileName.textContent = this.profile.name;
       this.elements.profileStatus.textContent = this.profile.apiKey ? 'Connected' : 'API Key Required';
     }
-    
+    // Profile modal avatar (if present)
+    const modalAvatar = document.getElementById('profile-modal-avatar');
+    if (modalAvatar && this.profile.avatar) {
+      modalAvatar.src = this.profile.avatar;
+      modalAvatar.style.display = '';
+    } else if (modalAvatar) {
+      modalAvatar.style.display = 'none';
+    }
     // Fill modal fields if available
     if (this.elements.profileNameInput) {
       this.elements.profileNameInput.value = this.profile.name;
@@ -239,33 +338,29 @@ class ProfileManager {
     }
   }
   
-  async saveProfile() {
+  async saveProfile(skipModalFields = false) {
     if (!this.profile) return;
-    
-    // Update profile data
-    this.profile.name = this.elements.profileNameInput.value.trim() || 'Torn Player';
-    this.profile.apiKey = this.elements.profileApiKeyInput.value.trim();
-    
-    // Update settings
-    this.profile.settings = {
-      darkMode: this.elements.darkModeCheckbox.checked,
-      notifications: this.elements.notificationsCheckbox.checked,
-      autoRefresh: this.elements.autoRefreshCheckbox.checked,
-      refreshInterval: parseInt(this.elements.refreshIntervalInput.value, 10) || 60
-    };
-    
+    if (!skipModalFields) {
+      // Update profile data from modal fields
+      this.profile.name = this.elements.profileNameInput.value.trim() || 'Torn Player';
+      this.profile.apiKey = this.elements.profileApiKeyInput.value.trim();
+      // Update settings
+      this.profile.settings = {
+        darkMode: this.elements.darkModeCheckbox.checked,
+        notifications: this.elements.notificationsCheckbox.checked,
+        autoRefresh: this.elements.autoRefreshCheckbox.checked,
+        refreshInterval: parseInt(this.elements.refreshIntervalInput.value, 10) || 60
+      };
+    }
     // Save to store
     await window.tornAPI.saveProfile(this.profile);
-    
     // Reload profile
     await this.loadProfile();
-    
     // Close modal
-    if (window.UI) {
+    if (window.UI && !skipModalFields) {
       window.UI.closeModal('profile-modal');
     }
-    
-    if (window.Utils) {
+    if (window.Utils && !skipModalFields) {
       window.Utils.showNotification('Profile saved');
     }
   }
@@ -278,6 +373,34 @@ class ProfileManager {
     
     if (window.Utils) {
       window.Utils.showNotification('Notes saved');
+    }
+  }
+  
+  async extractTornUserInfoFromWebview() {
+    try {
+      const webview = window.BrowserControls && window.BrowserControls.webview;
+      if (!webview) return;
+      // Execute JS in the webview to get the torn-user input value
+      const userInfoJson = await webview.executeJavaScript(`
+        (function() {
+          var el = document.getElementById('torn-user');
+          return el ? el.value : null;
+        })();
+      `);
+      if (!userInfoJson) return;
+      const userInfo = JSON.parse(userInfoJson);
+      if (!userInfo || !userInfo.id) return;
+      // Update profile fields
+      if (!this.profile) this.profile = {};
+      this.profile.tornId = userInfo.id;
+      this.profile.name = userInfo.playername;
+      this.profile.avatar = userInfo.avatar;
+      this.profile.role = userInfo.role;
+      await this.saveProfile(true);
+      this.updateProfileDisplay();
+      // No notification or console log
+    } catch (e) {
+      console.error('Failed to extract Torn user info:', e);
     }
   }
   

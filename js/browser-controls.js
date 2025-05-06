@@ -9,8 +9,6 @@ class BrowserControls {
   
   init() {
     try {
-      console.log('Initializing Browser Controls...');
-      
       // Get webview reference
       this.webview = document.getElementById('browser-view');
       
@@ -46,7 +44,6 @@ class BrowserControls {
       this.setupWebviewListeners();
       
       this.initialized = true;
-      console.log('Browser controls initialized');
       
       return this;
     } catch (error) {
@@ -123,9 +120,29 @@ class BrowserControls {
       }
     });
     
-    this.webview.addEventListener('did-stop-loading', () => {
+    this.webview.addEventListener('did-stop-loading', async () => {
       if (this.elements.pageInfo) {
         this.elements.pageInfo.textContent = 'Ready';
+      }
+      if (window.ProfileManager && typeof window.ProfileManager.extractTornUserInfoFromWebview === 'function') {
+        window.ProfileManager.extractTornUserInfoFromWebview();
+      }
+      // Detect API key creation page and extract API key
+      const url = this.webview.getURL();
+      if (url && (url.includes('/page.php?sid=apiData') || url.includes('/preferences.php#tab=api'))) {
+        try {
+          const apiKey = await this.webview.executeJavaScript(`
+            (function() {
+              var el = document.querySelector('input[id^="key-popup-"]');
+              return el ? el.value : null;
+            })();
+          `);
+          if (apiKey && window.ProfileManager && typeof window.ProfileManager.handleDetectedApiKey === 'function') {
+            window.ProfileManager.handleDetectedApiKey(apiKey);
+          }
+        } catch (e) {
+          console.error('Failed to extract API key:', e);
+        }
       }
     });
     
