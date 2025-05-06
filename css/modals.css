@@ -5,7 +5,7 @@
   left: 0; 
   right: 0; 
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.6);
   z-index: 1000;
   display: flex;
   align-items: center;
@@ -13,6 +13,7 @@
   opacity: 0;
   visibility: hidden;
   transition: opacity 0.3s, visibility 0.3s;
+  backdrop-filter: blur(2px);
 }
 
 .modal.active {
@@ -22,22 +23,34 @@
 
 .modal-content {
   background: var(--panel-bg);
-  border-radius: 8px;
-  box-shadow: 0 5px 25px rgba(0, 0, 0, 0.25);
-  width: 80%;
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  width: 85%;
   max-width: 900px;
   max-height: 90vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   transition: background-color var(--transition-speed);
+  animation: modalAppear 0.3s ease-out;
+}
+
+@keyframes modalAppear {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
+  padding: 16px 24px;
   border-bottom: 1px solid var(--border-color);
   transition: border-color var(--transition-speed);
 }
@@ -55,16 +68,24 @@
   color: var(--text-secondary);
   font-size: 1.5em;
   cursor: pointer;
-  transition: color var(--transition-speed);
+  transition: color var(--transition-speed), transform 0.2s;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
 }
 
 .modal-close:hover {
   color: var(--danger-color);
+  background-color: rgba(var(--accent-color-rgb), 0.1);
+  transform: scale(1.1);
 }
 
 .modal-body {
   flex: 1;
-  padding: 20px;
+  padding: 24px;
   overflow-y: auto;
   color: var(--text-color);
   transition: color var(--transition-speed);
@@ -73,9 +94,9 @@
 .modal-footer {
   display: flex;
   justify-content: flex-end;
-  padding: 15px 20px;
+  padding: 16px 24px;
   border-top: 1px solid var(--border-color);
-  gap: 10px;
+  gap: 12px;
   transition: border-color var(--transition-speed);
 }
 
@@ -85,15 +106,16 @@
   background: var(--secondary-bg);
   border-bottom: 1px solid var(--border-color);
   transition: background-color var(--transition-speed), border-color var(--transition-speed);
+  flex-wrap: wrap;
 }
 
 .tab {
-  padding: 10px 20px;
+  padding: 12px 24px;
   cursor: pointer;
-  border-bottom: 3px solid transparent;
+  position: relative;
   color: var(--text-color);
+  font-weight: 500;
   transition: background-color var(--transition-speed), 
-              border-color var(--transition-speed),
               color var(--transition-speed);
 }
 
@@ -102,8 +124,19 @@
 }
 
 .tab.active {
-  border-bottom-color: var(--accent-color);
+  color: var(--accent-color);
   background: var(--input-bg);
+  position: relative;
+}
+
+.tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background-color: var(--accent-color);
 }
 
 .tab-content {
@@ -120,24 +153,32 @@
 .modal input[type="text"],
 .modal input[type="password"],
 .modal input[type="number"],
+.modal input[type="email"],
+.modal input[type="url"],
 .modal textarea,
 .modal select {
   background-color: var(--input-bg);
   color: var(--input-text);
   border: 1px solid var(--border-color);
-  border-radius: 4px;
-  padding: 8px 12px;
+  border-radius: 6px;
+  padding: 10px 14px;
   transition: background-color var(--transition-speed),
               color var(--transition-speed),
-              border-color var(--transition-speed);
+              border-color var(--transition-speed),
+              box-shadow 0.2s;
+  width: 100%;
+  font-size: 1rem;
 }
 
 .modal input[type="text"]:focus,
 .modal input[type="password"]:focus,
 .modal input[type="number"]:focus,
+.modal input[type="email"]:focus,
+.modal input[type="url"]:focus,
 .modal textarea:focus,
 .modal select:focus {
   border-color: var(--accent-color);
+  box-shadow: 0 0 0 2px rgba(var(--accent-color-rgb), 0.2);
   outline: none;
 }
 
@@ -146,26 +187,160 @@
   background-color: var(--secondary-bg);
   color: var(--text-color);
   border: 1px solid var(--border-color);
-  border-radius: 4px;
-  padding: 6px 12px;
+  border-radius: 6px;
+  padding: 10px 16px;
   cursor: pointer;
   transition: background-color var(--transition-speed),
               color var(--transition-speed),
-              border-color var(--transition-speed);
+              border-color var(--transition-speed),
+              transform 0.1s;
+  font-weight: 500;
 }
 
 .modal button:hover {
   background-color: var(--hover-bg);
 }
 
-.modal button.primary {
+.modal button:active {
+  transform: translateY(1px);
+}
+
+.modal button.primary,
+.modal button.btn-primary {
   background-color: var(--accent-color);
   color: white;
   border-color: var(--accent-color);
 }
 
-.modal button.danger {
+.modal button.primary:hover,
+.modal button.btn-primary:hover {
+  background-color: var(--accent-hover);
+}
+
+.modal button.danger,
+.modal button.btn-danger {
   background-color: var(--danger-color);
   color: white;
   border-color: var(--danger-color);
+}
+
+.modal button.danger:hover,
+.modal button.btn-danger:hover {
+  background-color: #c62828;
+}
+
+.modal button.success,
+.modal button.btn-success {
+  background-color: var(--success-color);
+  color: white;
+  border-color: var(--success-color);
+}
+
+.modal button.success:hover,
+.modal button.btn-success:hover {
+  background-color: #2e7d32;
+}
+
+/* Form layouts inside modals */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.form-section {
+  background-color: var(--secondary-bg);
+  border-radius: 8px;
+  padding: 16px;
+  border: 1px solid var(--border-color);
+}
+
+.form-section h3 {
+  margin-top: 0;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+  color: var(--accent-color);
+}
+
+/* Checkbox styling */
+.modal input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  background-color: var(--input-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  display: inline-block;
+  position: relative;
+  margin-right: 8px;
+  vertical-align: middle;
+  cursor: pointer;
+}
+
+.modal input[type="checkbox"]:checked {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.modal input[type="checkbox"]:checked::after {
+  content: "✓";
+  font-size: 14px;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+}
+
+/* Responsive adjustments for modals */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    max-height: 95vh;
+    border-radius: 10px;
+  }
+  
+  .modal-header {
+    padding: 14px 16px;
+  }
+  
+  .modal-body {
+    padding: 16px;
+  }
+  
+  .modal-footer {
+    padding: 14px 16px;
+    flex-wrap: wrap;
+  }
+  
+  .modal-footer button {
+    flex: 1;
+    min-width: 120px;
+    white-space: nowrap;
+  }
+  
+  .tab {
+    padding: 10px 16px;
+    flex-grow: 1;
+    text-align: center;
+  }
+  
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .modal input[type="text"],
+  .modal input[type="password"],
+  .modal input[type="number"],
+  .modal textarea,
+  .modal select {
+    padding: 8px 12px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .modal button {
+    padding: 10px 12px;
+  }
 }
