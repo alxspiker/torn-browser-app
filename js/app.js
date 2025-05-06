@@ -8,10 +8,10 @@ class App {
       defaultPage: 'https://www.torn.com',
       showSidebar: true,
       fontSize: 'medium',
-      autoRefreshStats: true,
       eventNotifications: true,
-      energyNotifications: true,
-      apiCacheDuration: 5
+      energyNotifications: true
+      // Removed apiCacheDuration setting as we don't want any caching
+      // Removed autoRefreshStats setting as it's always on
     };
     
     // UI elements for settings
@@ -23,13 +23,14 @@ class App {
       settingsDefaultPageInput: null,
       settingsShowSidebarCheckbox: null,
       settingsFontSizeSelect: null,
-      settingsAutoRefreshStatsCheckbox: null,
       settingsEventNotificationsCheckbox: null,
-      settingsEnergyNotificationsCheckbox: null,
-      settingsApiCacheInput: null
+      settingsEnergyNotificationsCheckbox: null
+      // Removed settingsApiCacheInput
+      // Removed settingsAutoRefreshStatsCheckbox
     };
     
     this.initialized = false;
+    this.statsRefreshInterval = null;
   }
   
   async init() {
@@ -98,6 +99,9 @@ class App {
       
       // Request notification permissions if needed
       this.requestNotificationPermission();
+
+      // Start the stats refresh interval (fixed at 30 seconds)
+      this.startStatsRefresh();
       
       this.initialized = true;
     } catch (error) {
@@ -116,10 +120,10 @@ class App {
       settingsDefaultPageInput: document.getElementById('setting-default-page'),
       settingsShowSidebarCheckbox: document.getElementById('setting-show-sidebar'),
       settingsFontSizeSelect: document.getElementById('setting-font-size'),
-      settingsAutoRefreshStatsCheckbox: document.getElementById('setting-auto-refresh-stats'),
       settingsEventNotificationsCheckbox: document.getElementById('setting-event-notifications'),
-      settingsEnergyNotificationsCheckbox: document.getElementById('setting-energy-notifications'),
-      settingsApiCacheInput: document.getElementById('setting-api-cache')
+      settingsEnergyNotificationsCheckbox: document.getElementById('setting-energy-notifications')
+      // Removed settingsApiCacheInput
+      // Removed settingsAutoRefreshStatsCheckbox
     };
     
     // Check if all elements were found
@@ -180,10 +184,10 @@ class App {
     this.elements.settingsDefaultPageInput.value = this.settings.defaultPage;
     this.elements.settingsShowSidebarCheckbox.checked = this.settings.showSidebar;
     this.elements.settingsFontSizeSelect.value = this.settings.fontSize;
-    this.elements.settingsAutoRefreshStatsCheckbox.checked = this.settings.autoRefreshStats;
     this.elements.settingsEventNotificationsCheckbox.checked = this.settings.eventNotifications;
     this.elements.settingsEnergyNotificationsCheckbox.checked = this.settings.energyNotifications;
-    this.elements.settingsApiCacheInput.value = this.settings.apiCacheDuration;
+    // Removed settingsApiCacheInput update
+    // Removed settingsAutoRefreshStatsCheckbox update
   }
   
   saveSettings() {
@@ -199,10 +203,10 @@ class App {
     this.settings.defaultPage = this.elements.settingsDefaultPageInput.value;
     this.settings.showSidebar = this.elements.settingsShowSidebarCheckbox.checked;
     this.settings.fontSize = this.elements.settingsFontSizeSelect.value;
-    this.settings.autoRefreshStats = this.elements.settingsAutoRefreshStatsCheckbox.checked;
     this.settings.eventNotifications = this.elements.settingsEventNotificationsCheckbox.checked;
     this.settings.energyNotifications = this.elements.settingsEnergyNotificationsCheckbox.checked;
-    this.settings.apiCacheDuration = parseInt(this.elements.settingsApiCacheInput.value) || 5;
+    // Removed apiCacheDuration setting
+    // Removed autoRefreshStats setting
     
     // Apply dark mode if changed
     const darkModeEnabled = this.elements.settingsDarkModeCheckbox.checked;
@@ -221,15 +225,6 @@ class App {
     // Apply font size
     if (window.UI) {
       window.UI.setFontSize(this.settings.fontSize);
-    }
-    
-    // Apply auto-refresh settings for stats
-    if (window.TornAPI) {
-      if (this.settings.autoRefreshStats) {
-        window.TornAPI.startStatsRefresh(this.settings.apiCacheDuration * 60);
-      } else {
-        window.TornAPI.stopStatsRefresh();
-      }
     }
     
     // Store settings in local storage
@@ -259,11 +254,6 @@ class App {
     
     // Apply sidebar visibility
     window.UI.showSidebar(this.settings.showSidebar);
-    
-    // Apply auto-refresh settings
-    if (window.TornAPI && this.settings.autoRefreshStats) {
-      window.TornAPI.startStatsRefresh(this.settings.apiCacheDuration * 60);
-    }
   }
   
   requestNotificationPermission() {
@@ -271,6 +261,32 @@ class App {
       if ('Notification' in window && Notification.permission !== 'granted' && Notification.permission !== 'denied') {
         Notification.requestPermission();
       }
+    }
+  }
+
+  startStatsRefresh() {
+    // Clear any existing interval
+    if (this.statsRefreshInterval) {
+      clearInterval(this.statsRefreshInterval);
+    }
+
+    // Set new interval - fixed at 30 seconds
+    this.statsRefreshInterval = setInterval(() => {
+      if (window.TornAPI && typeof window.TornAPI.refreshPlayerStats === 'function') {
+        window.TornAPI.refreshPlayerStats().catch(err => {
+          console.warn('Auto-refresh stats failed:', err);
+        });
+      }
+    }, 30 * 1000); // 30 seconds
+
+    console.log('Stats auto-refresh started (30 second interval)');
+  }
+
+  stopStatsRefresh() {
+    if (this.statsRefreshInterval) {
+      clearInterval(this.statsRefreshInterval);
+      this.statsRefreshInterval = null;
+      console.log('Stats auto-refresh stopped');
     }
   }
   
