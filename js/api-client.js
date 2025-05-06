@@ -46,7 +46,7 @@ class ApiClient {
   
   async refreshPlayerStats() {
     try {
-      // When manually refreshing, bypass the cache completely
+      // Always bypass cache for all requests
       const stats = await this.fetchTornStats(true);
       
       // Store stats and ensure sidebar is updated
@@ -72,7 +72,7 @@ class ApiClient {
     }
   }
   
-  async fetchTornStats(bypassCache = false) {
+  async fetchTornStats(bypassCache = true) { // Default now set to true to always bypass cache
     // Make sure ProfileManager is available
     if (!window.ProfileManager || !window.ProfileManager.getActiveProfile) {
       console.error('ProfileManager not available');
@@ -107,13 +107,9 @@ class ApiClient {
         selections: 'money,icons,basic,cooldowns,bars'
       };
       
-      if (bypassCache) {
-        // Add a timestamp to force cache bypass
-        params.timestamp = Date.now();
-        
-        // Let the main process know to bypass cache
-        params._bypassCache = true;
-      }
+      // Always add timestamp and bypass flag
+      params.timestamp = Date.now();
+      params._bypassCache = true;
       
       const data = await window.tornAPI.apiRequest('user', params);
       
@@ -251,21 +247,23 @@ class ApiClient {
     return `${minutes}m ${seconds}s`;
   }
   
-  startStatsRefresh(interval) {
+  startStatsRefresh(interval = 30) {
     // Clear existing interval if any
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
     }
     
-    // Set new interval (minimum 30 seconds)
-    const seconds = Math.max(30, parseInt(interval, 10) || 60);
-    this.refreshInterval = setInterval(() => this.refreshPlayerStats(), seconds * 1000); // Use refreshPlayerStats to ensure sidebar updates
+    // Fixed 30-second interval - ignore any passed value
+    const seconds = 30;
+    this.refreshInterval = setInterval(() => this.refreshPlayerStats(), seconds * 1000);
+    console.log(`Started stats refresh with fixed ${seconds}-second interval`);
   }
   
   stopStatsRefresh() {
     if (this.refreshInterval) {
       clearInterval(this.refreshInterval);
       this.refreshInterval = null;
+      console.log('Stopped stats refresh');
     }
   }
 }
