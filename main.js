@@ -17,22 +17,13 @@ const store = new Store({
       lastVisitedUrl: 'https://www.torn.com',
       settings: {
         darkMode: true,
-        notifications: true,
-        autoRefresh: false,
-        refreshInterval: 60
+        notifications: true
       },
       notes: ''
     },
     windowBounds: { width: 1200, height: 800 }
   }
 });
-
-// Initialize API cache
-const apiCache = {
-  data: {},
-  timestamp: {},
-  maxAge: 5 * 60 * 1000 // 5 minutes
-};
 
 // Find or create the userData directory for storing files
 const userDataPath = app.getPath('userData');
@@ -192,7 +183,7 @@ app.whenReady().then(() => {
     return true;
   });
   
-  // API proxy to handle caching and authentication
+  // API proxy to handle authentication - No caching is used now
   ipcMain.handle('torn-api-request', async (event, endpoint, params = {}) => {
     try {
       const profile = getProfile();
@@ -205,11 +196,8 @@ app.whenReady().then(() => {
       // Create a new params object without our custom properties
       const apiParams = { ...params };
       
-      // Extract bypass cache flag if present
-      const bypassCache = apiParams._bypassCache === true;
+      // Remove our custom properties that are not needed for the actual API request
       delete apiParams._bypassCache;
-      
-      // Remove timestamp if present (used by frontend to force cache bypass)
       delete apiParams.timestamp;
       
       const queryParams = new URLSearchParams({
@@ -219,30 +207,10 @@ app.whenReady().then(() => {
       
       const url = `https://api.torn.com/${endpoint}?${queryParams}`;
       
-      // Check cache only if not bypassing
-      if (!bypassCache) {
-        const cacheKey = url;
-        const now = Date.now();
-        const cacheDuration = profile.settings?.apiCacheDuration || 5; // Default 5 minutes
-        const maxAge = cacheDuration * 60 * 1000;
-        
-        if (apiCache.data[cacheKey] && (now - apiCache.timestamp[cacheKey]) < maxAge) {
-          console.log(`[API] Using cached data for ${endpoint}`);
-          return apiCache.data[cacheKey];
-        }
-      } else {
-        console.log(`[API] Bypassing cache for ${endpoint}`);
-      }
-      
-      // Make the actual API request
+      // No cache check - always fetch fresh data
       console.log(`[API] Fetching fresh data for ${endpoint}`);
       const response = await fetch(url);
       const data = await response.json();
-      
-      // Cache the result (even for bypass requests, for future use)
-      const cacheKey = url;
-      apiCache.data[cacheKey] = data;
-      apiCache.timestamp[cacheKey] = Date.now();
       
       return data;
     } catch (err) {
