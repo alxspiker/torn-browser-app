@@ -3,7 +3,7 @@
   <div class="modal-content">
     <div class="modal-header">
       <div class="modal-title">Settings</div>
-      <button class="modal-close">&times;</button>
+      <button class="modal-close" aria-label="Close">&times;</button>
     </div>
     <div class="modal-body">
       <div class="tabs">
@@ -15,81 +15,111 @@
       
       <div class="tab-content active" id="general-settings">
         <h3>General Settings</h3>
-        <div class="form-group">
-          <label style="display: flex; align-items: center; margin-bottom: 10px;">
-            <input type="checkbox" id="setting-remember-last-url">
-            <span style="margin-left: 8px;">Remember last visited URL on startup</span>
-          </label>
-          <label style="display: flex; align-items: center; margin-bottom: 10px;">
-            <input type="checkbox" id="setting-clear-cache-on-exit">
-            <span style="margin-left: 8px;">Clear browser cache on exit</span>
-          </label>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="setting-default-page">Default page</label>
-          <input type="text" class="form-input" id="setting-default-page" value="https://www.torn.com">
+        <div class="form-section">
+          <div class="form-group">
+            <div class="checkbox-wrapper">
+              <label>
+                <input type="checkbox" id="setting-remember-last-url">
+                <span>Remember last visited URL on startup</span>
+              </label>
+            </div>
+            <div class="checkbox-wrapper">
+              <label>
+                <input type="checkbox" id="setting-clear-cache-on-exit">
+                <span>Clear browser cache on exit</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setting-default-page">Default page</label>
+            <input type="url" class="form-input" id="setting-default-page" value="https://www.torn.com">
+          </div>
         </div>
       </div>
       
       <div class="tab-content" id="appearance-settings">
         <h3>Appearance</h3>
-        <div class="form-group">
-          <label style="display: flex; align-items: center; margin-bottom: 10px;">
-            <input type="checkbox" id="setting-dark-mode-app">
-            <span style="margin-left: 8px;">Dark Mode</span>
-          </label>
-          <label style="display: flex; align-items: center; margin-bottom: 10px;">
-            <input type="checkbox" id="setting-show-sidebar">
-            <span style="margin-left: 8px;">Show sidebar on startup</span>
-          </label>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="setting-font-size">Font Size</label>
-          <select class="form-input" id="setting-font-size">
-            <option value="small">Small</option>
-            <option value="medium" selected>Medium</option>
-            <option value="large">Large</option>
-          </select>
+        <div class="form-section">
+          <div class="form-group">
+            <div class="checkbox-wrapper">
+              <label>
+                <input type="checkbox" id="setting-dark-mode-app">
+                <span>Dark Mode</span>
+              </label>
+            </div>
+            <div class="checkbox-wrapper">
+              <label>
+                <input type="checkbox" id="setting-show-sidebar">
+                <span>Show sidebar on startup</span>
+              </label>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="setting-font-size">Font Size</label>
+            <select class="form-input" id="setting-font-size">
+              <option value="small">Small</option>
+              <option value="medium" selected>Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </div>
         </div>
       </div>
       
       <div class="tab-content" id="torn-settings">
         <h3>Torn.com Settings</h3>
-        <div class="form-group">
-          <div style="margin-bottom: 15px; padding: 10px; background-color: var(--secondary-bg); border-left: 3px solid var(--accent-color);">
-            <strong>Stats Auto-Refresh</strong>: Stats are automatically refreshed every 30 seconds to ensure you have the most current data.
+        <div class="form-section">
+          <div class="form-group">
+            <div style="margin-bottom: 20px; padding: 15px; background-color: rgba(var(--accent-color-rgb), 0.1); border-left: 4px solid var(--accent-color); border-radius: 4px;">
+              <strong>Stats Auto-Refresh</strong>: Stats are automatically refreshed every 30 seconds to ensure you have the most current data.
+            </div>
+            <div class="checkbox-wrapper">
+              <label>
+                <input type="checkbox" id="setting-event-notifications">
+                <span>Show notifications for Torn events</span>
+              </label>
+            </div>
+            <div class="checkbox-wrapper">
+              <label>
+                <input type="checkbox" id="setting-energy-notifications">
+                <span>Notify when energy is full</span>
+              </label>
+            </div>
           </div>
-          <label style="display: flex; align-items: center; margin-bottom: 10px;">
-            <input type="checkbox" id="setting-event-notifications">
-            <span style="margin-left: 8px;">Show notifications for Torn events</span>
-          </label>
-          <label style="display: flex; align-items: center; margin-bottom: 10px;">
-            <input type="checkbox" id="setting-energy-notifications">
-            <span style="margin-left: 8px;">Notify when energy is full</span>
-          </label>
         </div>
-        <!-- Removed API Cache Duration setting -->
       </div>
       
       <div class="tab-content" id="about">
         <h3>About Torn Browser</h3>
-        <p style="margin: 15px 0;">
-          Version 1.1.0<br>
-          A specialized browser for Torn.com with enhanced features and userscript support.
-        </p>
-        <p>
-          <strong>Features:</strong>
-          <ul style="margin-left: 20px; margin-top: 10px;">
-            <li>Torn.com API integration for real-time stats</li>
-            <li>Userscript manager with syntax highlighting and validation</li>
-            <li>Multiple user profiles</li>
-            <li>Quick navigation to important Torn pages</li>
-            <li>Dark mode support</li>
-          </ul>
-        </p>
-        <p style="margin-top: 20px;">
-          <a href="https://github.com/alxspiker/torn-browser-app" style="color: var(--accent-color);">View on GitHub</a>
-        </p>
+        <div class="form-section">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <img src="assets/icon.png" alt="Torn Browser" style="width: 64px; height: 64px; margin-bottom: 10px;">
+            <h2 style="margin: 0;">Torn Browser</h2>
+            <p style="margin: 5px 0; color: var(--text-secondary);">Version 1.2.0</p>
+          </div>
+          
+          <p style="margin: 15px 0; line-height: 1.5;">
+            A specialized browser for Torn.com with enhanced features and userscript support.
+          </p>
+          
+          <div style="margin: 20px 0;">
+            <h4 style="margin-bottom: 10px;">Features:</h4>
+            <ul style="margin-left: 20px; margin-top: 10px; line-height: 1.6;">
+              <li>Torn.com API integration for real-time stats</li>
+              <li>Userscript manager with syntax highlighting and validation</li>
+              <li>Multiple user profiles</li>
+              <li>Quick navigation to important Torn pages</li>
+              <li>Dark mode support</li>
+              <li>Mobile and desktop support</li>
+            </ul>
+          </div>
+          
+          <div style="margin-top: 30px; text-align: center;">
+            <a href="https://github.com/alxspiker/torn-browser-app" style="color: var(--accent-color); text-decoration: none; display: inline-flex; align-items: center; gap: 5px;">
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path></svg>
+              View on GitHub
+            </a>
+          </div>
+        </div>
       </div>
     </div>
     <div class="modal-footer">
