@@ -56,6 +56,15 @@ class App {
       // 3. Initialize API Client
       if (window.TornAPI) {
         window.TornAPI.init();
+        
+        // Do an initial refresh of stats after initialization
+        setTimeout(async () => {
+          try {
+            await window.TornAPI.refreshPlayerStats();
+          } catch (error) {
+            console.warn('Initial stats refresh failed:', error);
+          }
+        }, 1000);
       }
       
       // 4. Initialize Userscript Manager
