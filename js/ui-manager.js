@@ -136,9 +136,16 @@ class UIManager {
             if (typeof window.TornAPI.init === 'function') {
               window.TornAPI.init(); // Ensure elements are bound
             }
-            await window.TornAPI.refreshPlayerStats();
+            
+            // Use refreshPlayerStats to ensure it properly updates the sidebar
+            const stats = await window.TornAPI.refreshPlayerStats();
+            
             if (window.Utils) {
-              window.Utils.showNotification('Stats refreshed successfully');
+              if (stats && !stats.error) {
+                window.Utils.showNotification('Stats refreshed successfully');
+              } else {
+                window.Utils.showNotification('Failed to refresh stats', 'error');
+              }
             }
           } else {
             console.error('TornAPI is not available on window');
@@ -329,6 +336,16 @@ class UIManager {
       const el = document.getElementById(id);
       if (el) el.textContent = value;
     };
+    
+    if (!data) return; // Exit if no data is provided
+    
+    // Skip update if there's an error
+    if (data.error) {
+      console.warn('Skipping sidebar stats update due to error:', data.error);
+      return;
+    }
+    
+    // Update all stats with available data
     if (data.energy) set('stat-energy', `${data.energy.current} / ${data.energy.maximum}`);
     if (data.nerve) set('stat-nerve', `${data.nerve.current} / ${data.nerve.maximum}`);
     if (data.happy) set('stat-happy', `${data.happy.current} / ${data.happy.maximum}`);
@@ -336,10 +353,24 @@ class UIManager {
     if (data.chain && data.chain.current !== undefined) set('stat-chain', data.chain.current);
     if (data.money_onhand !== undefined) set('stat-money', '$' + data.money_onhand.toLocaleString());
     if (data.points !== undefined) set('stat-points', data.points.toLocaleString());
+    
+    // Update cooldowns
     if (data.cooldowns) {
-      set('cooldown-drug', window.TornAPI?.formatCooldown ? window.TornAPI.formatCooldown(data.cooldowns.drug) : data.cooldowns.drug);
-      set('cooldown-medical', window.TornAPI?.formatCooldown ? window.TornAPI.formatCooldown(data.cooldowns.medical) : data.cooldowns.medical);
-      set('cooldown-booster', window.TornAPI?.formatCooldown ? window.TornAPI.formatCooldown(data.cooldowns.booster) : data.cooldowns.booster);
+      const formatCooldown = window.TornAPI?.formatCooldown || function(time) {
+        if (!time) return 'Ready';
+        const minutes = Math.floor(time / 60);
+        const seconds = time % 60;
+        return `${minutes}m ${seconds}s`;
+      };
+      
+      set('cooldown-drug', formatCooldown(data.cooldowns.drug));
+      set('cooldown-medical', formatCooldown(data.cooldowns.medical));
+      set('cooldown-booster', formatCooldown(data.cooldowns.booster));
+    }
+    
+    // Store the latest stats in TornAPI for reference
+    if (window.TornAPI) {
+      window.TornAPI.lastStats = data;
     }
   }
 }
