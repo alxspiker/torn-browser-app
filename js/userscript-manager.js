@@ -128,11 +128,8 @@ class UserscriptManager {
     // Script name input
     if (this.elements.scriptNameInput) {
       this.elements.scriptNameInput.addEventListener('input', () => {
+        // Update name in code
         this._updateMetaInCode('// @name', this.elements.scriptNameInput.value);
-        if (this.userscripts.length > 0) {
-          this.userscripts[this.selectedScriptIndex].name = this.elements.scriptNameInput.value;
-          this.renderUserscriptList();
-        }
       });
     }
     
@@ -378,8 +375,12 @@ console.log('Hello from new userscript!');
     
     const script = this.userscripts[this.selectedScriptIndex];
     
+    // Extract metadata from code first
+    this.extractMetadataFromCode(script);
+    
+    // Display metadata in UI
     if (this.elements.scriptNameInput) {
-      this.elements.scriptNameInput.value = script.name;
+      this.elements.scriptNameInput.value = script.name || '';
     }
     
     if (this.elements.scriptMatchInput) {
@@ -390,18 +391,12 @@ console.log('Hello from new userscript!');
       this.elements.scriptEnabledCheckbox.checked = script.enabled;
     }
 
-    // Sync meta fields from code
-    const code = this.codeEditor.getValue();
-    const nameMatch = code.match(/^\/\/\s*@name\s+(.+)$/m);
-    if (this.elements.scriptNameInput) {
-      this.elements.scriptNameInput.value = nameMatch ? nameMatch[1].trim() : (script.name || '');
-    }
+    // Set other metadata fields
     const downloadUrlInput = document.getElementById('script-download-url');
-    const downloadMatch = code.match(/^\/\/\s*@downloadURL\s+(.+)$/m);
-    if (downloadUrlInput) downloadUrlInput.value = downloadMatch ? downloadMatch[1].trim() : (script.downloadUrl || '');
+    if (downloadUrlInput) downloadUrlInput.value = script.downloadUrl || '';
+    
     const updateUrlInput = document.getElementById('script-update-url');
-    const updateMatch = code.match(/^\/\/\s*@updateURL\s+(.+)$/m);
-    if (updateUrlInput) updateUrlInput.value = updateMatch ? updateMatch[1].trim() : (script.updateUrl || '');
+    if (updateUrlInput) updateUrlInput.value = script.updateUrl || '';
 
     // Autoupdate checkbox
     const autoupdateCheckbox = document.getElementById('script-autoupdate');
@@ -411,8 +406,46 @@ console.log('Hello from new userscript!');
     const updateStatus = document.getElementById('script-update-status');
     if (updateStatus) updateStatus.style.display = script.hasUpdate ? '' : 'none';
 
+    // Set code in editor
     this.codeEditor.setValue(script.code || '');
     this.codeEditor.clearHistory();
+  }
+  
+  // Extract metadata from code and update script object
+  extractMetadataFromCode(script) {
+    if (!script || !script.code) return;
+    
+    const code = script.code;
+    
+    // Extract name
+    const nameMatch = code.match(/^\s*\/\/\s*@name\s+(.+)$/m);
+    if (nameMatch) {
+      script.name = nameMatch[1].trim();
+    }
+    
+    // Extract match pattern
+    const matchMatch = code.match(/^\s*\/\/\s*@match\s+(.+)$/m);
+    if (matchMatch) {
+      script.match = matchMatch[1].trim();
+    }
+    
+    // Extract downloadURL
+    const downloadMatch = code.match(/^\s*\/\/\s*@downloadURL\s+(.+)$/m);
+    if (downloadMatch) {
+      script.downloadUrl = downloadMatch[1].trim();
+    }
+    
+    // Extract updateURL
+    const updateMatch = code.match(/^\s*\/\/\s*@updateURL\s+(.+)$/m);
+    if (updateMatch) {
+      script.updateUrl = updateMatch[1].trim();
+    }
+    
+    // Extract version
+    const versionMatch = code.match(/^\s*\/\/\s*@version\s+(.+)$/m);
+    if (versionMatch) {
+      script.version = versionMatch[1].trim();
+    }
   }
   
   createNewScript() {
@@ -430,6 +463,13 @@ console.log('Hello from new userscript!');
     
     const script = this.userscripts[this.selectedScriptIndex];
     
+    // Save code first
+    script.code = this.codeEditor.getValue();
+    
+    // Extract and save all metadata from the code
+    this.extractMetadataFromCode(script);
+    
+    // Also get values from form fields (they should match but this ensures consistency)
     if (this.elements.scriptNameInput) {
       script.name = this.elements.scriptNameInput.value.trim() || 'Untitled Script';
     }
@@ -448,6 +488,13 @@ console.log('Hello from new userscript!');
     const updateUrlInput = document.getElementById('script-update-url');
     if (updateUrlInput) script.updateUrl = updateUrlInput.value.trim();
 
+    // Make sure the code and UI are in sync
+    this._updateMetaInCode('// @name', script.name);
+    this._updateMetaInCode('// @match', script.match);
+    if (script.downloadUrl) this._updateMetaInCode('// @downloadURL', script.downloadUrl);
+    if (script.updateUrl) this._updateMetaInCode('// @updateURL', script.updateUrl);
+    
+    // Re-save the potentially modified code
     script.code = this.codeEditor.getValue();
     
     this.renderUserscriptList();
@@ -571,7 +618,11 @@ console.log('Hello from new userscript!');
               name: s.name,
               match: s.match || '*://*.torn.com/*',
               code: s.code,
-              enabled: s.enabled !== false
+              enabled: s.enabled !== false,
+              downloadUrl: s.downloadUrl || s.downloadURL,
+              updateUrl: s.updateUrl || s.updateURL,
+              autoupdate: !!s.autoupdate,
+              version: s.version
             }));
             
             this.selectedScriptIndex = 0;
@@ -681,15 +732,21 @@ console.log('Hello from new userscript!');
     script.hasUpdate = false;
     script.latestVersion = undefined;
     script.latestCode = undefined;
+    
+    // Extract updated metadata
+    this.extractMetadataFromCode(script);
+    
     this.saveUserscripts();
     this.updateScriptEditor();
+    this.renderUserscriptList(); // Re-render to update script name in list
+    
     if (window.Utils) window.Utils.showNotification('Script updated to latest version');
   }
 
   async fetchRemoteMeta(url) {
     const resp = await fetch(url);
     const text = await resp.text();
-    const versionMatch = text.match(/^\/\/\s*@version\s+(.+)$/m);
+    const versionMatch = text.match(/^\s*\/\/\s*@version\s+(.+)$/m);
     return {
       version: versionMatch ? versionMatch[1].trim() : null,
       fullCode: text
@@ -697,7 +754,7 @@ console.log('Hello from new userscript!');
   }
 
   getScriptVersion(code) {
-    const match = code.match(/^\/\/\s*@version\s+(.+)$/m);
+    const match = code.match(/^\s*\/\/\s*@version\s+(.+)$/m);
     return match ? match[1].trim() : null;
   }
 
