@@ -46,7 +46,8 @@ class ApiClient {
   
   async refreshPlayerStats() {
     try {
-      const stats = await this.fetchTornStats();
+      // When manually refreshing, bypass the cache completely
+      const stats = await this.fetchTornStats(true);
       
       // Store stats and ensure sidebar is updated
       if (stats && !stats.error) {
@@ -71,7 +72,7 @@ class ApiClient {
     }
   }
   
-  async fetchTornStats() {
+  async fetchTornStats(bypassCache = false) {
     // Make sure ProfileManager is available
     if (!window.ProfileManager || !window.ProfileManager.getActiveProfile) {
       console.error('ProfileManager not available');
@@ -101,7 +102,20 @@ class ApiClient {
         return { error: 'API interface not available' };
       }
       
-      const data = await window.tornAPI.apiRequest('user', { selections: 'money,icons,basic,cooldowns,bars' });
+      // Add a bypass cache parameter for the main process
+      const params = { 
+        selections: 'money,icons,basic,cooldowns,bars'
+      };
+      
+      if (bypassCache) {
+        // Add a timestamp to force cache bypass
+        params.timestamp = Date.now();
+        
+        // Let the main process know to bypass cache
+        params._bypassCache = true;
+      }
+      
+      const data = await window.tornAPI.apiRequest('user', params);
       
       if (data.error) {
         this.updateStatsDisplay({ error: data.error });
