@@ -56,10 +56,9 @@
       <div class="tab-content" id="torn-settings">
         <h3>Torn.com Settings</h3>
         <div class="form-group">
-          <label style="display: flex; align-items: center; margin-bottom: 10px;">
-            <input type="checkbox" id="setting-auto-refresh-stats">
-            <span style="margin-left: 8px;">Auto-refresh player stats</span>
-          </label>
+          <div style="margin-bottom: 15px; padding: 10px; background-color: var(--secondary-bg); border-left: 3px solid var(--accent-color);">
+            <strong>Stats Auto-Refresh</strong>: Stats are automatically refreshed every 30 seconds to ensure you have the most current data.
+          </div>
           <label style="display: flex; align-items: center; margin-bottom: 10px;">
             <input type="checkbox" id="setting-event-notifications">
             <span style="margin-left: 8px;">Show notifications for Torn events</span>
@@ -69,10 +68,7 @@
             <span style="margin-left: 8px;">Notify when energy is full</span>
           </label>
         </div>
-        <div class="form-group">
-          <label class="form-label" for="setting-api-cache">API Cache Duration (minutes)</label>
-          <input type="number" class="form-input" id="setting-api-cache" min="1" max="60" value="5">
-        </div>
+        <!-- Removed API Cache Duration setting -->
       </div>
       
       <div class="tab-content" id="about">
