@@ -3,6 +3,7 @@ class ApiClient {
   constructor() {
     this.refreshInterval = null;
     this.initialized = false;
+    this.lastStats = null; // Store the last stats for reference
     
     // UI elements
     this.elements = {};
@@ -46,6 +47,20 @@ class ApiClient {
   async refreshPlayerStats() {
     try {
       const stats = await this.fetchTornStats();
+      
+      // Store stats and ensure sidebar is updated
+      if (stats && !stats.error) {
+        this.lastStats = stats;
+        
+        // Directly update the UI with the new stats
+        this.updateStatsDisplay(stats);
+        
+        // Also update the sidebar through UI manager
+        if (window.UI && window.UI.updateSidebarStats) {
+          window.UI.updateSidebarStats(stats);
+        }
+      }
+      
       return stats;
     } catch (error) {
       console.error('Error refreshing player stats:', error);
@@ -209,7 +224,7 @@ class ApiClient {
       }
     }
 
-    // Update sidebar stats as well
+    // Always update sidebar stats when we get new data
     if (window.UI && window.UI.updateSidebarStats) {
       window.UI.updateSidebarStats(data);
     }
@@ -230,7 +245,7 @@ class ApiClient {
     
     // Set new interval (minimum 30 seconds)
     const seconds = Math.max(30, parseInt(interval, 10) || 60);
-    this.refreshInterval = setInterval(() => this.fetchTornStats(), seconds * 1000);
+    this.refreshInterval = setInterval(() => this.refreshPlayerStats(), seconds * 1000); // Use refreshPlayerStats to ensure sidebar updates
   }
   
   stopStatsRefresh() {
