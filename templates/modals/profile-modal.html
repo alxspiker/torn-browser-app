@@ -3,62 +3,88 @@
   <div class="modal-content">
     <div class="modal-header">
       <div class="modal-title">Torn Profile</div>
-      <button class="modal-close">&times;</button>
+      <button class="modal-close" aria-label="Close">&times;</button>
     </div>
     <div class="modal-body">
       <form id="profile-form">
-        <div class="form-group">
-          <img id="profile-modal-avatar" style="width:48px;height:48px;border-radius:50%;display:none;margin-bottom:10px;">
-          <label class="form-label" for="profile-edit-name">Character Name</label>
-          <input type="text" class="form-input" id="profile-edit-name" required>
-        </div>
-        <div class="form-group">
-          <label class="form-label" for="profile-api-key">Torn API Key</label>
-          <input type="text" class="form-input" id="profile-api-key" placeholder="Enter your Torn API key">
-          <small>Your API key is stored locally and only used to fetch data from Torn.</small>
-          <div style="margin-top: 10px;">
-            <label class="form-label" for="api-key-access">API Key Access Level</label>
-            <select id="api-key-access" class="form-input" style="width: 220px;">
-              <option value="public">Public Only</option>
-              <option value="minimal">Minimal Access</option>
-              <option value="limited">Limited Access</option>
-              <option value="full">Full Access</option>
-              <option value="custom">Custom...</option>
-            </select>
-            <select id="api-key-custom-scopes" class="form-input" style="width: 100%; margin-top: 8px; display: none;" multiple size="6">
-              <option value="user:basic">User: Basic</option>
-              <option value="user:bars">User: Bars</option>
-              <option value="user:cooldowns">User: Cooldowns</option>
-              <option value="user:notifications">User: Notifications</option>
-              <option value="faction:basic">Faction: Basic</option>
-              <option value="faction:contributors">Faction: Contributors</option>
-              <option value="torn:bank">Torn: Bank</option>
-              <!-- Add more scopes as needed -->
-            </select>
-            <button id="create-api-key-btn" class="btn btn-secondary" style="margin-top: 10px;">Create API Key</button>
-            <button id="view-api-keys-btn" class="btn btn-secondary" style="margin-top: 10px; margin-left: 10px;">View Keys</button>
+        <div class="form-grid">
+          <div class="form-section">
+            <h3>Profile Information</h3>
+            <div class="form-group">
+              <div style="display: flex; align-items: center; margin-bottom: 15px;">
+                <img id="profile-modal-avatar" style="width:60px;height:60px;border-radius:50%;display:none;margin-right:15px;object-fit:cover;">
+                <div>
+                  <label class="form-label" for="profile-edit-name">Character Name</label>
+                  <input type="text" class="form-input" id="profile-edit-name" required>
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profile-api-key">Torn API Key</label>
+              <input type="text" class="form-input" id="profile-api-key" placeholder="Enter your Torn API key">
+              <div class="form-hint">Your API key is stored locally and only used to fetch data from Torn.</div>
+            </div>
+            <div class="form-group">
+              <div class="checkbox-wrapper">
+                <label>
+                  <input type="checkbox" id="setting-dark-mode">
+                  <span>Dark Mode</span>
+                </label>
+              </div>
+              <div class="checkbox-wrapper">
+                <label>
+                  <input type="checkbox" id="setting-notifications">
+                  <span>Enable Notifications</span>
+                </label>
+              </div>
+              <div class="checkbox-wrapper">
+                <label>
+                  <input type="checkbox" id="setting-auto-refresh">
+                  <span>Auto-refresh Stats</span>
+                </label>
+              </div>
+            </div>
+            <div class="form-group" id="refresh-interval-group" style="display: none;">
+              <label class="form-label" for="setting-refresh-interval">Refresh Interval (seconds)</label>
+              <input type="number" class="form-input" id="setting-refresh-interval" min="30" max="600" value="60">
+            </div>
           </div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Settings</label>
-          <div style="margin-top: 10px;">
-            <label style="display: flex; align-items: center; margin-bottom: 8px;">
-              <input type="checkbox" id="setting-dark-mode">
-              <span style="margin-left: 8px;">Dark Mode</span>
-            </label>
-            <label style="display: flex; align-items: center; margin-bottom: 8px;">
-              <input type="checkbox" id="setting-notifications">
-              <span style="margin-left: 8px;">Enable Notifications</span>
-            </label>
-            <label style="display: flex; align-items: center; margin-bottom: 8px;">
-              <input type="checkbox" id="setting-auto-refresh">
-              <span style="margin-left: 8px;">Auto-refresh Stats</span>
-            </label>
+
+          <div class="form-section">
+            <h3>API Key Creation</h3>
+            <div class="form-group">
+              <label class="form-label" for="api-key-access">API Key Access Level</label>
+              <select id="api-key-access" class="form-input">
+                <option value="public">Public Only</option>
+                <option value="minimal">Minimal Access</option>
+                <option value="limited">Limited Access</option>
+                <option value="full">Full Access</option>
+                <option value="custom">Custom...</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <select id="api-key-custom-scopes" class="form-input" style="display: none;" multiple size="6">
+                <option value="user:basic">User: Basic</option>
+                <option value="user:bars">User: Bars</option>
+                <option value="user:cooldowns">User: Cooldowns</option>
+                <option value="user:notifications">User: Notifications</option>
+                <option value="faction:basic">Faction: Basic</option>
+                <option value="faction:contributors">Faction: Contributors</option>
+                <option value="torn:bank">Torn: Bank</option>
+                <!-- Add more scopes as needed -->
+              </select>
+            </div>
+            
+            <div class="form-actions">
+              <button id="create-api-key-btn" class="btn btn-primary">Create API Key</button>
+              <button id="view-api-keys-btn" class="btn btn-secondary">View Keys</button>
+            </div>
+            
+            <div class="form-hint" style="margin-top: 15px; font-style: italic;">
+              Creating a new API key will navigate to Torn.com where you can generate the key with your selected permissions.
+            </div>
           </div>
-        </div>
-        <div class="form-group" id="refresh-interval-group" style="display: none;">
-          <label class="form-label" for="setting-refresh-interval">Refresh Interval (seconds)</label>
-          <input type="number" class="form-input" id="setting-refresh-interval" min="30" max="600" value="60">
         </div>
       </form>
     </div>
