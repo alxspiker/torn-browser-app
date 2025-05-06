@@ -132,13 +132,25 @@ class UIManager {
     if (refreshStats) {
       refreshStats.addEventListener('click', async () => {
         try {
+          // Show that refresh is in progress
+          if (window.Utils) {
+            window.Utils.showNotification('Refreshing stats...', 'info');
+          }
+          
+          // First ensure the UI elements are initialized
           if (window.TornAPI) {
             if (typeof window.TornAPI.init === 'function') {
               window.TornAPI.init(); // Ensure elements are bound
             }
             
-            // Use refreshPlayerStats to ensure it properly updates the sidebar
+            // Show loading state in the sidebar
+            this.updateSidebarLoadingState(true);
+            
+            // Use refreshPlayerStats to ensure it properly updates the sidebar with bypass cache
             const stats = await window.TornAPI.refreshPlayerStats();
+            
+            // Clear loading state
+            this.updateSidebarLoadingState(false);
             
             if (window.Utils) {
               if (stats && !stats.error) {
@@ -149,9 +161,13 @@ class UIManager {
             }
           } else {
             console.error('TornAPI is not available on window');
+            if (window.Utils) {
+              window.Utils.showNotification('Failed to refresh stats: API not available', 'error');
+            }
           }
         } catch (error) {
           console.error('Error refreshing stats:', error);
+          this.updateSidebarLoadingState(false);
           if (window.Utils) {
             window.Utils.showNotification('Failed to refresh stats', 'error');
           }
@@ -185,6 +201,44 @@ class UIManager {
         if (window.ProfileManager) {
           window.ProfileManager.saveNotes();
         }
+      });
+    }
+  }
+  
+  updateSidebarLoadingState(isLoading) {
+    // Visual indication that stats are being refreshed
+    const refreshButton = document.getElementById('refresh-stats');
+    if (refreshButton) {
+      if (isLoading) {
+        refreshButton.textContent = 'Refreshing...';
+        refreshButton.disabled = true;
+        refreshButton.classList.add('loading');
+      } else {
+        refreshButton.textContent = 'Refresh Stats';
+        refreshButton.disabled = false;
+        refreshButton.classList.remove('loading');
+      }
+    }
+    
+    // Set a temporary "loading" state on the stat elements
+    if (isLoading) {
+      const statElements = [
+        'stat-energy', 'stat-nerve', 'stat-happy', 'stat-life', 
+        'stat-chain', 'stat-money', 'stat-points'
+      ];
+      
+      statElements.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+          el.classList.add('refreshing');
+          // Store the current text so we can restore it if needed
+          el.dataset.prevText = el.textContent;
+        }
+      });
+    } else {
+      // Remove loading state from all stat elements
+      document.querySelectorAll('.refreshing').forEach(el => {
+        el.classList.remove('refreshing');
       });
     }
   }
@@ -334,7 +388,10 @@ class UIManager {
     // Update stat fields in the sidebar if present
     const set = (id, value) => {
       const el = document.getElementById(id);
-      if (el) el.textContent = value;
+      if (el) {
+        el.textContent = value;
+        el.classList.remove('refreshing');
+      }
     };
     
     if (!data) return; // Exit if no data is provided
