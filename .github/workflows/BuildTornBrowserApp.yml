@@ -60,7 +60,7 @@ jobs:
       # Upload Windows artifacts
       - name: Upload Windows artifacts
         if: matrix.os == 'windows-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: torn-browser-windows
           path: |
@@ -70,7 +70,7 @@ jobs:
       # Upload macOS artifacts
       - name: Upload macOS artifacts
         if: matrix.os == 'macos-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: torn-browser-macos
           path: |
@@ -81,7 +81,7 @@ jobs:
       # Upload Linux artifacts
       - name: Upload Linux artifacts
         if: matrix.os == 'ubuntu-latest'
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: torn-browser-linux
           path: |
