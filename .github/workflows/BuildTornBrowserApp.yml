@@ -44,7 +44,7 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libxkbcommon-x11-0 libxss1 libgconf-2-4 libgtk-3-0 libnss3 libasound2
+          sudo apt-get install -y libxkbcommon-x11-0 libxss1 libgtk-3-0 libnss3 libasound2t64 libatk1.0-0 libatk-bridge2.0-0 libdrm2 libgbm1 libxshmfence1
           
       # Build step - this uses electron-builder defined in package.json
       - name: Build Electron app
