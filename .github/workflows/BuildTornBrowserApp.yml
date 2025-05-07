@@ -1,5 +1,4 @@
 name: Build Torn Browser App
-
 on:
   push:
     branches: [ main ]
@@ -7,7 +6,6 @@ on:
     branches: [ main ]
   workflow_dispatch:
     # Allows manual triggering
-
 jobs:
   build:
     name: Build (${{ matrix.os }})
@@ -16,17 +14,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [windows-latest, ubuntu-latest, macos-latest]
-
     steps:
       - name: Check out Git repository
         uses: actions/checkout@v3
-
       - name: Install Node.js
         uses: actions/setup-node@v3
         with:
           node-version: 16
           cache: 'npm'
-
       - name: Install dependencies
         run: npm ci
         
@@ -34,9 +29,9 @@ jobs:
       - name: Prepare for Windows build
         if: matrix.os == 'windows-latest'
         run: |
-          # Install Windows build tools if needed
-          npm install --global windows-build-tools --vs2015 || true
-
+          # Node.js 16+ includes necessary build tools for Windows
+          echo "Using build tools included with Node.js"
+          
       # macOS-specific preparation
       - name: Prepare for macOS build
         if: matrix.os == 'macos-latest'
@@ -50,13 +45,13 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libxkbcommon-x11-0 libxss1 libgconf-2-4 libgtk-3-0 libnss3 libasound2
-
+          
       # Build step - this uses electron-builder defined in package.json
       - name: Build Electron app
         run: npm run build
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
+          
       # Upload Windows artifacts
       - name: Upload Windows artifacts
         if: matrix.os == 'windows-latest'
@@ -66,7 +61,7 @@ jobs:
           path: |
             dist/*.exe
             dist/latest.yml
-
+            
       # Upload macOS artifacts
       - name: Upload macOS artifacts
         if: matrix.os == 'macos-latest'
@@ -77,7 +72,7 @@ jobs:
             dist/*.dmg
             dist/*.zip
             dist/latest-mac.yml
-
+            
       # Upload Linux artifacts
       - name: Upload Linux artifacts
         if: matrix.os == 'ubuntu-latest'
@@ -90,7 +85,7 @@ jobs:
             dist/*.deb
             dist/*.rpm
             dist/latest-linux.yml
-
+            
   # Create a release when tagged
   release:
     name: Create Release
