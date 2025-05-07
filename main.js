@@ -50,7 +50,7 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js')
     },
     autoHideMenuBar: false,
-    icon: path.join(__dirname, 'assets/icon.png')
+    icon: path.join(__dirname, 'assets/logo.png')
   });
 
   // Save window size on resize
