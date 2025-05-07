@@ -53,6 +53,7 @@
   padding: 16px 24px;
   border-bottom: 1px solid var(--border-color);
   transition: border-color var(--transition-speed);
+  flex-shrink: 0;
 }
 
 .modal-title {
@@ -89,6 +90,7 @@
   overflow-y: auto;
   color: var(--text-color);
   transition: color var(--transition-speed);
+  overflow-x: hidden;
 }
 
 .modal-footer {
@@ -98,6 +100,7 @@
   border-top: 1px solid var(--border-color);
   gap: 12px;
   transition: border-color var(--transition-speed);
+  flex-shrink: 0;
 }
 
 /* Tabs */
@@ -143,6 +146,8 @@
   display: none;
   color: var(--text-color);
   transition: color var(--transition-speed);
+  overflow-y: auto;
+  max-height: calc(70vh - 120px); /* Account for header, tabs, and footer */
 }
 
 .tab-content.active {
