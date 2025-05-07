@@ -11,7 +11,6 @@ Torn Browser App is a specialized browser built specifically for the online text
 - **Automatic Updates**: Userscripts can be configured to automatically check for and install updates
 - **API Integration**: Built-in Torn API client for accessing game data without leaving the browser
 - **Cooldown Timers**: Track medical, drug, and booster cooldowns
-- **Multiple Profiles**: Support for multiple player profiles with separate settings and userscripts
 - **Customization**: Dark mode support and customizable interface
 
 ## Installation
