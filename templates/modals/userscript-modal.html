@@ -10,7 +10,7 @@
       </div>
       <button class="modal-close">&times;</button>
     </div>
-    <div class="modal-body" style="padding: 0;">
+    <div class="modal-body" style="padding: 0; overflow: hidden;">
       <div id="userscript-editor">
         <div class="editor-sidebar">
           <div style="padding: 10px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color);">
@@ -28,7 +28,7 @@
             <div class="editor-tab active" id="tab-edit">Edit Script</div>
             <div class="editor-tab" id="tab-settings">Settings</div>
           </div>
-          <div class="editor-tab-content" id="tab-content-edit" style="display: block;">
+          <div class="editor-tab-content active" id="tab-content-edit">
             <div class="editor-workspace">
               <textarea id="code-editor"></textarea>
             </div>
@@ -86,7 +86,7 @@
               </div>
             </div>
             
-            <div class="form-actions" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+            <div class="form-actions">
               <button id="validate-script" class="btn btn-secondary">
                 <span style="margin-right: 5px;">✓</span> Validate Script
               </button>
@@ -112,54 +112,3 @@
     </div>
   </div>
 </div>
-
-<style>
-  /* Additional styles for the userscript modal */
-  .settings-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    padding: 24px;
-  }
-  
-  .settings-section {
-    padding: 18px;
-    background-color: var(--secondary-bg);
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-  }
-  
-  .settings-section h3 {
-    margin-top: 0;
-    margin-bottom: 16px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid var(--border-color);
-    color: var(--accent-color);
-  }
-  
-  .form-group {
-    margin-bottom: 16px;
-  }
-  
-  .form-hint {
-    font-size: 0.85em;
-    color: var(--text-secondary);
-    margin-top: 4px;
-  }
-  
-  .checkbox-wrapper {
-    margin-top: 8px;
-  }
-  
-  /* Responsive layout */
-  @media (max-width: 992px) {
-    .settings-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-  
-  .form-actions {
-    display: flex;
-    gap: 10px;
-  }
-</style>
